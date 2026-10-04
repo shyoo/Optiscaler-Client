@@ -8,11 +8,23 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 - The fork's `general` = upstream `general` @ `f73cf2c` (v1.0.8) + the fork-only workspace files
   (`AGENTS.md`, `HANDOFF.md`, `fork/`, the fork-local `.gitignore` block). No product code has
   changed yet. `dotnet build` is green at this baseline (.NET SDK 10.0.401, 0 warnings).
-- The maintainer approved the dlssg_for_sm86 proposal on upstream issue #103. The implementation
-  plan is [`fork/PLAN-dlssg-sm86.md`](fork/PLAN-dlssg-sm86.md): agreed scope (§1), the gaps
-  between the stated conventions and the code (§2), verified upstream facts for mod tag `0.3.5`
-  (§3), design (§4), PR slicing (§5), task breakdown (§6), tests (§7), and questions for the
-  maintainer (§9).
+- Local `general` in the main checkout is ahead of `origin/general` (Warmstart's landing policy is
+  `commit-and-merge`, which doesn't push). The user pushes `general` when they choose to.
+- The maintainer approved the dlssg_for_sm86 proposal on upstream issue #103 (their only reply,
+  2026-10-03 19:19 UTC). The implementation plan is
+  [`fork/PLAN-dlssg-sm86.md`](fork/PLAN-dlssg-sm86.md).
+- **The plan's open questions are decided, not asked** (plan §9). The user chose to settle them
+  in-fork and discuss details in the PR. In short:
+  - **Q1 code-behind:** no DI, no ViewModel. Logic in the service; a thin
+    `Views/ManageGameWindow.DlssgSm86.cs` partial; service from
+    `PlatformServiceFactory.CreateDlssgSm86Service()` (null off Windows).
+  - **Q2 tests:** no test project in PR 1; §7 scenarios are checked by hand in plan task 8.
+  - **Q3 placement:** inside the Experimental zone (`GridExperimentalZone`, Settings →
+    Experimental). Hidden on Linux and on non-Turing/Ampere GPUs; game-level blockers shown with
+    the reason.
+  - **Q4 collision:** installing OptiScaler onto a DLSSG proxy name is refused with a message.
+  - **Q5 proxies:** every free name of version/winmm/dbghelp/dinput8; size shown before download.
+  - **Q6 docs:** README feature line + acknowledgments; no CHANGELOG (the maintainer writes it).
 
 ## What is unproven
 
@@ -24,7 +36,13 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 
 ## Next
 
-1. **Post the §9 questions on issue #103** (the user posts; agents don't comment on upstream).
-   Q1 (code-behind vs ViewModel/DI) and Q3 (placement/visibility) gate the UI task.
-2. Start plan §6 tasks 2–4: pin script + manifest for `0.3.5`; models + GPU helpers + package
-   service; backup-store component scope. Tasks 3 and 4 can run in parallel.
+Nothing is blocked on the maintainer any more. Start plan §6:
+
+1. **Task 2:** pin script (fork-only, under `fork/`, no `.cs`) + product manifest JSON for mod
+   tag `0.3.5`, both builds (310.9 / 310.1). Settles the per-build file list above.
+2. **Tasks 3 and 4 in parallel:** models + GPU helpers + package service (needs task 2); backup
+   store component scope (independent).
+3. Then task 5 (install/update/uninstall + collision guards), task 6 (UI, strings ×14, gamepad),
+   task 7 (cache management + README).
+
+Housekeeping the user deferred: delete the stale `warmstart/t902` branch (local and `origin`).

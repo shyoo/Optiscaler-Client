@@ -26,7 +26,7 @@ upstream PR.
 | Auto-selection | End goal, **follow-up PR**: on RTX 20/30, pick this as the FG option when the game qualifies, otherwise fall back to the current recommendation. Hook: `FrameGenerationConfigurationService.GetRecommendation`. |
 | Conventions | MVVM (no logic in Views); services registered in the DI container; async disk and network work off the UI thread; **no hardcoded user-facing strings**, and every new string goes into **all 14** `Languages/Strings.*.axaml`. |
 
-## 2. Where the codebase doesn't match the stated conventions — ask before coding
+## 2. Where the codebase doesn't match the stated conventions
 
 What the code actually does (checked at `f73cf2c`):
 
@@ -38,10 +38,9 @@ What the code actually does (checked at `f73cf2c`):
   `InternalsVisibleTo("Optiscaler-Client.Tests")`. The maintainer probably keeps one outside the
   repo.
 
-Proposed approach, to confirm on the issue (§9 Q1–Q2):
+Approach (decided, §9 Q1–Q2):
 - All logic lives in the new service(s). The Manage window gets a thin code-behind section that
-  only binds and forwards clicks, or a small `DlssgSm86SectionViewModel` if the maintainer wants
-  MVVM to start here.
+  only binds and forwards clicks. No ViewModel unless the maintainer asks in review.
 - Create the service through `PlatformServiceFactory.CreateDlssgSm86Service()`, which returns
   `null` off Windows, so the section is hidden. This matches how GPU and gamepad services are
   created. Only bring in `Microsoft.Extensions.DependencyInjection` if the maintainer asks.
@@ -117,8 +116,7 @@ Proposed approach, to confirm on the issue (§9 Q1–Q2):
 
 1. `OperatingSystem.IsWindows()`. Otherwise the factory returns null and the section is hidden.
 2. Preferred GPU (`GpuSelectionHelper.GetPreferredGpu` with the configured default GPU id) is
-   Turing RTX or Ampere. Otherwise **hide the section** (to confirm in §9 Q3) and show why in a
-   tooltip.
+   Turing RTX or Ampere. Otherwise **hide the section** (§9 Q3, decided).
 3. The game ships DLSS-G: `game.DlssFrameGenVersion` is set, or `nvngx_dlssg.dll` /
    `sl.dlss_g.dll` exists. Reuse `FrameGenerationConfigurationService.DetectCapabilities`
    (`HasNativeDlssG && IsDirectX12`) rather than scanning again.
@@ -147,8 +145,8 @@ Proposed approach, to confirm on the issue (§9 Q1–Q2):
 - **Reverse collision:** `GameInstallationService.InstallOptiScaler` has to stop treating our
   proxies as originals. Otherwise it backs them up and later "restores" them, or overwrites them
   when the chosen `InjectionMethod` is one of our names. Guard: if the chosen injection method is
-  a DLSSG proxy name, refuse with a clear message (or re-pick a name — see §9 Q4), and leave our
-  files out of its backup and residue logic.
+  a DLSSG proxy name, refuse with a clear message (§9 Q4, decided), and leave our files out of
+  its backup and residue logic.
 
 ### 4.5 Backups — a separate component-scoped record in the backup store
 
@@ -205,8 +203,7 @@ uninstalling DLSSG must leave OptiScaler alone.
 
 - A new section in the options area that matches the existing option cards: a label with a "?"
   tooltip, `ComboBox`es using the global styles, and the existing button styles. Placement:
-  either its own bordered row like `GridExperimentalZone`, or **inside** that zone behind
-  Settings → Experimental (§9 Q3).
+  **inside** `GridExperimentalZone`, behind Settings → Experimental (§9 Q3, decided).
 - Controls: status (Not installed / Installed vX (build) / Update available), Build (310.9 /
   310.1), Max multiplier, Install / Update / Uninstall, the HAGS warning, an eligibility reason
   when blocked, and the chosen proxy names after install.
@@ -241,9 +238,8 @@ upgrades, and Linux/Proton.
 5. `feat: add dlssg_for_sm86 section to manage game window`: UI, HAGS panel, strings ×14,
    gamepad focus.
 6. `feat: show dlssg_for_sm86 in cache management`.
-7. `docs: document dlssg_for_sm86 support`: README features and acknowledgments (sdli1995's
-   dlssg_for_sm86, Coldwood1026 for SM75), plus CHANGELOG. **Check with the maintainer** first;
-   they normally write the CHANGELOG during their release commits.
+7. `docs: credit dlssg_for_sm86 in readme`: README feature line and acknowledgments (sdli1995's
+   dlssg_for_sm86, Coldwood1026 for SM75). **No CHANGELOG** (§9 Q6).
 
 **PR 2: Diagnose.** Parse the newest `loader_*/backend_*.jsonl` for `fg_gate_*` and
 `install route active`, and show a one-line verdict with details. Offer to set `Level=2`
@@ -260,12 +256,12 @@ Each PR branch is cut from `upstream/general` and carries product commits only (
 | # | Task | Lands on fork `general` | Depends on |
 |---|---|---|---|
 | 0 | Install the .NET 10 SDK on the dev machine; build is green at baseline | — (environment) | — |
-| 1 | Post §9 questions on #103 (the user posts them) | — | — |
+| 1 | ~~Post §9 questions on #103~~ decided in-fork instead (§9) | — | — |
 | 2 | Pin script + manifest JSON for 0.3.5 (both builds) | fork script, product JSON | 0 |
 | 3 | Models + GPU helpers + package service (commits 1–2) | yes | 2 |
 | 4 | Backup-store component scope (commit 3) | yes | 0 |
 | 5 | Install/update/uninstall service + collision guards (commit 4) | yes | 3, 4 |
-| 6 | Manage window section + strings + gamepad (commit 5) | yes | 5, answers to Q1/Q3 |
+| 6 | Manage window section + strings + gamepad (commit 5) | yes | 5 |
 | 7 | Cache management + docs (commits 6–7) | yes | 5 |
 | 8 | Manual test matrix on the RTX 3080 Ti (§7); fix findings | yes | 6, 7 |
 | 9 | Cut `pr/dlssg-sm86` from `upstream/general`, cherry-pick product commits, push to `origin` (the fork), write `fork/pr/dlssg-sm86.md`; the user opens the upstream PR | fork `pr/` branch | 8 |
@@ -274,8 +270,8 @@ Tasks 3 and 4 can run in parallel.
 
 ## 7. Test plan
 
-No test project ships in the repo (§9 Q2). Until that's settled, keep fixture tests out of the
-app's compile glob. The root csproj compiles **every** `**/*.cs` under the repo root (§AGENTS
+No test project ships in the repo, and PR 1 adds none (§9 Q2): the scenarios below are checked by
+hand in task 8. If tests are added later, keep them out of the app's compile glob. The root csproj compiles **every** `**/*.cs` under the repo root (§AGENTS
 pitfall), so a test project has to live outside the root, or be excluded explicitly.
 
 Fixture or unit scenarios (wherever tests end up):
@@ -287,8 +283,8 @@ Fixture or unit scenarios (wherever tests end up):
 - Uninstall restores the folder byte-identical to a pre-install hash snapshot.
 - Uninstalling OptiScaler leaves DLSSG and its component backup intact, and the reverse holds
   too.
-- Installing OptiScaler with `InjectionMethod` = an installed DLSSG proxy → refused or re-picked,
-  never backed up as an "original".
+- Installing OptiScaler with `InjectionMethod` = an installed DLSSG proxy → refused with a
+  message, never backed up as an "original".
 - Update 310.9 → 310.1 keeps the INI values (and clamps a 6X cap to 4X with a notice).
 - An edited INI at uninstall → the user is asked.
 - Eligibility: Linux → service is null, section hidden. GTX 1660 / RTX 4090 / RX 7900 → hidden.
@@ -313,7 +309,7 @@ Manual on the dev machine (RTX 3080 Ti, Intel UHD 770 iGPU, Windows 11):
   A new mod version is a deliberate manifest bump.
 - **Download size:** about 30 MB per proxy × 4 ≈ 120 MB per build. Download per build on demand
   and show the size up front. Could be reduced to `version.dll` + `winmm.dll` if the maintainer
-  prefers (§9 Q5).
+  asks in review (§9 Q5).
 - **Interaction with OptiScaler's FG routes:** OptiScaler's Nukem / DLSS Enabler providers hook
   the same NGX DLSS-G path. In v1, warn when OptiScaler's FG is on alongside this mod; the real
   integration is PR 3.
@@ -323,20 +319,32 @@ Manual on the dev machine (RTX 3080 Ti, Intel UHD 770 iGPU, Windows 11):
   section in its own partial class file (`ManageGameWindow.DlssgSm86.cs`), like `.Responsive.cs`
   and `.CoverAmbience.cs`, and touch the main file minimally.
 
-## 9. Questions for the maintainer (post on #103 before PR 1 UI work)
+## 9. Decisions on the open questions (made 2026-10-03, not asked upstream)
 
-1. **Conventions vs current code:** there's no DI container or ViewModel layer today. Is a thin
-   code-behind partial (`ManageGameWindow.DlssgSm86.cs`) that only calls a service OK, or do you
-   want this section to introduce a ViewModel and/or `Microsoft.Extensions.DependencyInjection`?
-2. **Tests:** the csproj has `InternalsVisibleTo("Optiscaler-Client.Tests")`, but no test project
-   is in the repo. Is there one I should add tests to, or should I add one (where)?
-3. **Placement and visibility:** a regular section, or inside the Experimental zone behind
-   Settings → Experimental? On non-Turing/Ampere GPUs, hide it entirely (like Linux) or show it
-   disabled with the reason?
-4. **Injection-method collision:** if a user later installs OptiScaler with an injection method
-   the DLSSG proxy already uses, should Install refuse with a message, or switch OptiScaler to
-   the next free method?
-5. **Proxy set:** install all four utility proxies (upstream's recommendation, about 120 MB
-   download per build), or just `version.dll` plus one fallback?
-6. **CHANGELOG / README:** should the PR touch them, or do you prefer to write those during the
-   release?
+The user chose not to post these on #103. The fork decides them now, and the PR description states
+each one as a choice the maintainer can push back on during review.
+
+1. **Conventions vs current code → follow the existing code.** No DI container, no ViewModel.
+   All logic lives in the service(s); the Manage window gets a thin code-behind partial
+   `Views/ManageGameWindow.DlssgSm86.cs` that only reads service results and forwards clicks. The
+   service comes from `PlatformServiceFactory.CreateDlssgSm86Service()` (`null` off Windows).
+   PR text: "happy to move this into a ViewModel if you want MVVM to start here."
+2. **Tests → none in the PR.** There is no test project to add to, and the root csproj compiles
+   every `**/*.cs`. The §7 fixture scenarios are verified by hand in task 8 and listed in the PR
+   description. PR text offers to add tests if the maintainer points at their test project.
+3. **Placement and visibility → inside the Experimental zone** (`GridExperimentalZone`, shown
+   only with Settings → Experimental), next to RenoDX and DLSS NR on AMD, which are the closest
+   precedent (third-party mods that unlock vendor tech on unsupported hardware).
+   - Hidden entirely on Linux and on GPUs that aren't Turing/Ampere (same rule as Linux).
+   - Shown, with the reason and buttons disabled, for game-level blockers on an eligible PC:
+     anti-cheat, no Streamline DLSS-G in the game, not D3D12, no free proxy name.
+4. **OptiScaler installed onto a name the mod already uses → refuse with a message.** Don't
+   silently change the user's chosen injection method. The message names the DLSSG proxies in
+   that folder and suggests picking another injection method. Our files are never backed up as
+   "originals" by `InstallOptiScaler` (§4.4).
+5. **Proxy set → every free utility name** of `version`, `winmm`, `dbghelp`, `dinput8` (upstream's
+   active/standby design, §4.4). Show the download size before downloading.
+6. **CHANGELOG / README → README only.** The maintainer writes every CHANGELOG entry in their
+   release commits (all recent `CHANGELOG.md` commits are theirs), so the PR doesn't touch it. The
+   PR adds a README feature line and an entry under "Acknowledgments & Third-Party Software"
+   (sdli1995's dlssg_for_sm86; Coldwood1026 for SM75), in a separate `docs:` commit they can drop.
