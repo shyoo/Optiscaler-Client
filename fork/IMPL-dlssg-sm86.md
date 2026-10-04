@@ -23,8 +23,13 @@ Steps A–G are implemented. These choices replace what §2–§3 say:
 - **Update / build switch:** the new files are downloaded and verified first. Then the old install
   is removed and the new one installed. If the new install then fails, the folder is left
   **clean**, not on the previous version. Only local disk I/O can fail at that point.
-- **Logs:** uninstall always removes `<exeDir>\dlssg_sm86\logs` (no opt-in), as `DlssNrOnAmdService`
-  sweeps its runtime artifacts.
+- **Logs:** uninstall removes `<exeDir>\dlssg_sm86\logs` with no opt-in, but only if the folder
+  didn't exist at install time (recorded in `InstalledDirectories`). A folder left from a manual
+  install stays.
+- **Manual installs (added after the user's test pass):** new blocker `ManualInstall`. Any file under
+  the four names, or `dxgi.dll`/`d3d12.dll`, that contains the UTF-16 string `dlssg_sm86.ini` is a
+  hand-copied mod (0.2.4 and 0.3.5 both match; system DLLs don't). The card lists those files plus
+  the INI and asks the user to remove them first, so two builds are never mixed.
 - **NotDx12:** blocks only when there's Vulkan evidence and no D3D12 evidence. `IsDirectX12` alone
   is false for most DX12 games, which don't ship d3d12 DLLs.
 - **Thumbprint:** `X509Certificate.CreateFromSignedFile` is obsolete (SYSLIB0057), and
@@ -34,11 +39,13 @@ Steps A–G are implemented. These choices replace what §2–§3 say:
   neighbour. Each list ends with the regular map's target.
 - **Cache page:** its own partial (`CacheManagementWindow.DlssgSm86.cs`). "Clear application
   cache" needed no change: it already removes all of `Cache/`.
-- **Strings:** 43 keys ×14.
+- **Strings:** 45 keys ×14.
 - **Downloads:** only the proxies needed for the free names are downloaded (lazily, per file).
 
-Verified by: `fork/tools/dlssg-harness` (27 checks), and Windows + `linux-x64` builds with no
-warnings. **Not verified yet:** the UI itself and any real game (task H).
+Verified by: `fork/tools/dlssg-harness` (33 checks), Windows + `linux-x64` builds with no
+warnings, and the user's manual pass on FF16 / RTX 3080 Ti (task H, steps 1–10, all as expected).
+The manual-install blocker came after that pass and is covered by the harness only, including the
+user's real 0.2.4 proxy.
 
 ## 0. Decisions made in this round (user, 2026-10-03)
 

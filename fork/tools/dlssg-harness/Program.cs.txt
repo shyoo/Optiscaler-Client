@@ -131,6 +131,33 @@ try
 catch (DlssgSm86ProxyCollisionException ex) { Check(true, $"OptiScaler onto winmm.dll refused: {ex.Message}"); }
 service.Uninstall(clean, false);
 
+// ── Manual installs (any version) are recognised and block the install ─────────
+var realProxy = Path.Combine(service.Packages.GetBuildCacheDir("0.3.5", "310.1"), "version.dll");
+var manual = MakeGame("ManualGame", d => { File.Copy(realProxy, Path.Combine(d, "version.dll")); File.WriteAllText(Path.Combine(d, "dlssg_sm86.ini"), "[General]\nEnabled=1\n"); });
+e = service.GetEligibility(manual);
+Check(e.Blocker == DlssgSm86Blocker.ManualInstall && e.Occupied.Select(o => o.FileName).SequenceEqual(new[] { "version.dll", "dlssg_sm86.ini" }), $"hand-copied proxy + INI → ManualInstall ({e.Blocker}: {string.Join(",", e.Occupied.Select(o => o.FileName))})");
+
+var oldSig = System.Text.Encoding.Unicode.GetBytes("dlssg_sm86.ini");
+var manualDxgi = MakeGame("ManualDxgiGame", d => File.WriteAllBytes(Path.Combine(d, "dxgi.dll"), new byte[] { 0x4D, 0x5A }.Concat(new byte[3_000_000]).Concat(oldSig).ToArray()));
+e = service.GetEligibility(manualDxgi);
+Check(e.Blocker == DlssgSm86Blocker.ManualInstall && e.Occupied.Single().FileName == "dxgi.dll", "hand-copied dxgi.dll variant → ManualInstall");
+
+// Optional: point DLSSG_MANUAL_SAMPLE at an older hand-installed proxy (e.g. 0.2.4's version.dll).
+var sample = Environment.GetEnvironmentVariable("DLSSG_MANUAL_SAMPLE");
+if (!string.IsNullOrEmpty(sample) && File.Exists(sample))
+    Check(DlssgSm86Service.IsDlssgSm86Proxy(sample), $"older proxy recognised as the mod: {Path.GetFileName(sample)}");
+
+var plainDxgi =MakeGame("ReshadeDxgiGame", d => File.WriteAllBytes(Path.Combine(d, "dxgi.dll"), new byte[3_000_000]));
+Check(service.GetEligibility(plainDxgi).IsEligible, "an unrelated dxgi.dll doesn't block");
+Check(service.GetEligibility(asi).Occupied.Single().Owner == DlssgSm86ProxyOwner.AsiLoader, "ASI loader still labelled as ASI loader, not as the mod");
+
+// ── A pre-existing dlssg_sm86\ folder (e.g. left from a manual install) survives uninstall ──
+var leftover = MakeGame("LeftoverLogsGame", d => { Directory.CreateDirectory(Path.Combine(d, "dlssg_sm86", "logs")); File.WriteAllText(Path.Combine(d, "dlssg_sm86", "logs", "old.jsonl"), "{}"); });
+var leftoverBefore = Snapshot(leftover.InstallPath);
+await service.InstallAsync(leftover, "310.9", 3);
+service.Uninstall(leftover, false);
+Check(SameSnapshot(leftoverBefore, Snapshot(leftover.InstallPath)), "pre-existing dlssg_sm86 logs kept on uninstall");
+
 // ── Cache listing ───────────────────────────────────────────────────────────
 var cached = service.Packages.ListCached();
 Check(cached.Count == 2 && cached.All(c => c.SizeBytes > 50_000_000), $"cache lists both builds ({string.Join(", ", cached.Select(c => $"{c.BuildId}:{c.SizeBytes / 1048576}MB"))})");

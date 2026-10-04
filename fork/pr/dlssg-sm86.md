@@ -2,8 +2,10 @@
 
 Fork-only. This is the text the user pastes into the upstream PR. It is never opened by an agent.
 
-- Branch: `pr/dlssg-sm86` (on `origin`, cut from `upstream/general`). **Not cut yet:** waiting for
-  the manual test pass.
+- Branch: `pr/dlssg-sm86` on `origin` (shyoo/Optiscaler-Client), cut from `upstream/general` @
+  `f73cf2c`, head `1e438c1`, 7 product commits. Pushed 2026-10-03.
+- Open the PR at:
+  https://github.com/Optiscaler-Client/Optiscaler-Client/compare/general...shyoo:Optiscaler-Client:pr/dlssg-sm86
 - Base: `Optiscaler-Client:general`
 - Title: `feat: dlssg_for_sm86 support (DLSS Frame Generation on RTX 20/30)`
 
@@ -30,6 +32,11 @@ DLSS-G. The nvngx FG-provider integration and auto-selection are left for follow
   following the mod's own active/standby design. A name is skipped when OptiScaler's record or
   the FSR 4 swap uses it, or when another file holds it (ASI loaders and ReShade are named in the
   message). `dxgi`/`d3d12` are never used.
+- **Manual installs:** many people already copied the mod in by hand, often an older version. That
+  copy is recognised under any proxy name: every dlssg_for_sm86 proxy, 0.2.x included, carries the
+  UTF-16 name of its INI. The card then says *"dlssg_for_sm86 (manual install) is already in this
+  folder: version.dll, dlssg_sm86.ini. Remove those files first"*, rather than installing next to
+  it and mixing two builds in one process.
 - **Downloads:** each file comes from upstream at a **pinned commit**
   (`raw.githubusercontent.com/<repo>/<commit>/<path>`) and is never mirrored, since the proxies embed
   NVIDIA's DLSS-G runtime. The pinned manifest (`assets/configs/dlssg_sm86_manifest.json`) records
@@ -70,8 +77,36 @@ DLSS-G. The nvngx FG-provider integration and auto-selection are left for follow
 
 ### Tested
 
-<!-- fill in from the manual pass (fork task H) -->
-- RTX 3080 Ti, Windows 11:
-- Builds: Windows and linux-x64, no new warnings.
+By hand on an **RTX 3080 Ti, Windows 11**, with **Final Fantasy XVI** (Streamline DLSS-G):
+- Install of runtime 310.9: the mod went in as `version.dll`, `winmm.dll`, `dbghelp.dll` and
+  `dinput8.dll` plus the INI. DLSS Frame Generation becomes available and works in game, at 2X,
+  which is the cap of FF16's own Streamline plugin.
+- Changing the multiplier (Apply) rewrites only `MaxGeneratedFrames`. Switching 310.9 → 310.1
+  (Update) keeps the user's INI values.
+- Uninstall with a hand-edited INI asks first (Delete / Keep). Afterwards the game folder is
+  byte-identical to before the install (SHA-256 of every top-level file).
+- OptiScaler with injection `winmm.dll` is refused with the message above, and nothing is written.
+  OptiScaler 0.9.4 via `dxgi.dll` (FG disabled) installs next to the mod, and both work in game.
+  Uninstalling OptiScaler leaves the mod in place, and uninstalling the mod afterwards restores the
+  folder exactly.
+- The Cache Management page lists and deletes cached builds.
+- UI: checked in Korean and German, at a narrow window width, and with gamepad navigation through
+  the card.
+
+Automated, against fake game folders with the real pinned downloads (33 checks; the harness lives
+outside this repo):
+- eligibility: all four names free; an ASI loader on `dinput8.dll`; every name taken; no DLSS-G;
+  anti-cheat;
+- manual installs: a hand-copied 0.3.5 proxy, a hand-copied `dxgi.dll`, and a real 0.2.4 proxy are
+  recognised; an unrelated `dxgi.dll` doesn't block;
+- verification: wrong hash → file deleted; a tampered cache file is downloaded again;
+- install, multiplier change, build switch with INI carry-over and the 6X→4X clamp;
+- uninstall leaves the folder byte-identical, including a pre-existing `dlssg_sm86\` folder;
+- an edited INI is kept on request;
+- rollback of a failed install leaves the folder unchanged with no record;
+- the `InstallOptiScaler` collision guard;
+- OptiScaler's reverse lookup ignores the component record.
+
+Builds: Windows and linux-x64, no new warnings.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
