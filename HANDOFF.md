@@ -26,23 +26,25 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
   - **Q5 proxies:** every free name of version/winmm/dbghelp/dinput8; size shown before download.
   - **Q6 docs:** README feature line + acknowledgments; no CHANGELOG (the maintainer writes it).
 
+- **The implementation plan is [`fork/IMPL-dlssg-sm86.md`](fork/IMPL-dlssg-sm86.md)** (t909). It
+  wins over the PLAN where they differ. Decisions made there with the user:
+  - **D1:** the card has its own Install/Update/Uninstall buttons, outside the main Install
+    pipeline.
+  - **D2:** the backup record uses store key `<targetDir>::dlssg_sm86` (the `::dlssnr`
+    precedent), plus a slug guard in `FindBackupDirUnder`. There is no `_components/` subtree.
+  - **D3:** v1 exposes only Build + Max multiplier.
+
 ## What is unproven
 
-- Whether `GameInstallationService.DetermineInstallDirectory` gives the rendering-exe directory
-  for UE games whose Streamline DLLs sit under `Engine\Plugins\…` (plan §4.4).
-- The exact per-build file list at mod commit `9621db5` (the docs describe four root proxies; the
-  repo keeps three of them under `alternatives/`). The pin script settles this.
 - Coexistence of the mod with OptiScaler's own DLSS-G output providers (plan §8).
+- Whether `X509Certificate.CreateFromSignedFile` builds warning-free on net10 (IMPL §3.2). There is
+  a fallback.
+- The per-build file list and the UE target directory are **settled** (IMPL §1). 310.1 has no INI
+  of its own and uses the root INI.
 
 ## Next
 
-Nothing is blocked on the maintainer any more. Start plan §6:
-
-1. **Task 2:** pin script (fork-only, under `fork/`, no `.cs`) + product manifest JSON for mod
-   tag `0.3.5`, both builds (310.9 / 310.1). Settles the per-build file list above.
-2. **Tasks 3 and 4 in parallel:** models + GPU helpers + package service (needs task 2); backup
-   store component scope (independent).
-3. Then task 5 (install/update/uninstall + collision guards), task 6 (UI, strings ×14, gamepad),
-   task 7 (cache management + README).
+Implement IMPL §4 in order: step A (pin script + manifest + models + GPU helpers), then B, C, D,
+E/F, G. Then the manual matrix (H) and the PR branch (I).
 
 Housekeeping the user deferred: delete the stale `warmstart/t902` branch (local and `origin`).

@@ -6,6 +6,9 @@ upstream PR.
 - Upstream issue: https://github.com/Optiscaler-Client/Optiscaler-Client/issues/103
 - Mod: https://github.com/sdli1995/dlssg_for_sm86
 - Written 2026-10-03 against client `general` @ `f73cf2c` (v1.0.8) and mod tag `0.3.5`.
+- **Concrete steps: [`IMPL-dlssg-sm86.md`](IMPL-dlssg-sm86.md).** It wins where the two differ.
+  Notably, §4.5's `_components/` subtree was replaced by the `::dlssg_sm86` store key (IMPL D2),
+  and `Optimized` is not exposed in v1 (IMPL D3).
 
 ---
 
