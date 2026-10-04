@@ -125,5 +125,14 @@ namespace OptiscalerClient.Models
         /// own per-game manifest. Lookups that look for OptiScaler's record skip component manifests.
         /// </summary>
         public string? ComponentId { get; set; }
+
+        /// <summary>dlssg_for_sm86 release installed by this record (ComponentId "dlssg_sm86").</summary>
+        public string? DlssgSm86Version { get; set; }
+
+        /// <summary>dlssg_for_sm86 runtime build ("310.9" or "310.1").</summary>
+        public string? DlssgSm86Build { get; set; }
+
+        /// <summary>Proxy DLL names dlssg_for_sm86 was installed under (e.g. version.dll, winmm.dll).</summary>
+        public List<string> DlssgSm86ProxyNames { get; set; } = new();
     }
 }

@@ -86,6 +86,9 @@ namespace OptiscalerClient.Models
         AntiCheat,
         NoDlssG,
         NotDx12,
+        /// <summary>A copy of the mod placed by hand (any version) is already in the folder. Installing
+        /// next to it would mix two builds in one process, so it has to be removed first.</summary>
+        ManualInstall,
         NoFreeProxyName
     }
 
@@ -96,6 +99,8 @@ namespace OptiscalerClient.Models
         Fsr4Swap,
         AsiLoader,
         ReShade,
+        /// <summary>dlssg_for_sm86 itself, copied in by hand rather than installed by this app.</summary>
+        ManualDlssgSm86,
         Unknown
     }
 
