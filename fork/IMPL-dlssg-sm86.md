@@ -39,13 +39,21 @@ Steps A–G are implemented. These choices replace what §2–§3 say:
   neighbour. Each list ends with the regular map's target.
 - **Cache page:** its own partial (`CacheManagementWindow.DlssgSm86.cs`). "Clear application
   cache" needed no change: it already removes all of `Cache/`.
-- **Strings:** 45 keys ×14.
+- **Pending action in the service (after review against #103):** `IDlssgSm86Service.GetPendingAction`
+  returns a `DlssgSm86ActionPlan` (Install / Update / ApplyMultiplier / None, download size, update
+  available, can run). The window only renders it, and the click handler uses the same plan to
+  choose `SetMaxGeneratedFrames` or `InstallAsync`. The 6X→4X clamp is one helper,
+  `DlssgSm86Multipliers.Clamp`, used by both the combo box and the service.
+- **Re-check refusal:** `InstallAsync` throws `DlssgSm86BlockedException` (carrying the eligibility)
+  when the folder changed since the window looked, and the dialog shows the blocker's own text.
+- **Strings:** 51 keys ×14. The verification failure reasons and the backup failure are translated
+  too, so no English detail is left in the error dialogs.
 - **Downloads:** only the proxies needed for the free names are downloaded (lazily, per file).
 
-Verified by: `fork/tools/dlssg-harness` (33 checks), Windows + `linux-x64` builds with no
-warnings, and the user's manual pass on FF16 / RTX 3080 Ti (task H, steps 1–10, all as expected).
-The manual-install blocker came after that pass and is covered by the harness only, including the
-user's real 0.2.4 proxy.
+Verified by: `fork/tools/dlssg-harness` (41 checks), Windows + `linux-x64` builds with no
+warnings, and the user's manual pass on FF16 / RTX 3080 Ti (task H, steps 1–10, all as expected,
+and later the manual-install blocker against their 0.2.4 `version.dll`). The pending-action move
+came after the manual pass and is covered by the harness.
 
 ## 0. Decisions made in this round (user, 2026-10-03)
 

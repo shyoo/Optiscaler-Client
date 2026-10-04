@@ -8,9 +8,9 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 - The fork's `general` = upstream `general` @ `f73cf2c` (v1.0.8), plus the fork-only workspace
   files, plus the **dlssg_for_sm86 feature** (t909). Local `general` in the main checkout is ahead
   of `origin/general`: the landing policy doesn't push, and the user pushes when they choose to.
-- **dlssg_for_sm86 is done and the PR branch is pushed**: `origin/pr/dlssg-sm86` (head `1b7a682`).
-  It holds **one squashed commit**, at the user's request (`general` keeps the 7-commit history, same
-  tree), cut from `upstream/general` @ `f73cf2c`, with the AGENTS.md guards
+- **dlssg_for_sm86 is done and the PR branch is pushed**: `origin/pr/dlssg-sm86` (head `b0a7d18`).
+  It holds **one squashed commit**, at the user's request (`general` keeps the 8 product commits,
+  same product files), cut from `upstream/general` @ `f73cf2c`, with the AGENTS.md guards
   clean, the same product content as `general`, and a build with 0 warnings. **The user opens the
   upstream PR** with the text in [`fork/pr/dlssg-sm86.md`](fork/pr/dlssg-sm86.md). Agents never
   open it.
@@ -26,20 +26,23 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
   - A copy of the mod placed by hand (any version) is detected by the UTF-16 `dlssg_sm86.ini` string
     in the DLL and blocks the install (`DlssgSm86Blocker.ManualInstall`).
   - UI: `Views/ManageGameWindow.DlssgSm86.cs` (card in the Experimental zone, four hooks in the main
-    file) and `Views/CacheManagementWindow.DlssgSm86.cs`. 45 `TxtDlssgSm86*` keys in all 14
-    languages.
+    file) and `Views/CacheManagementWindow.DlssgSm86.cs`. The window only renders the service's
+    `GetPendingAction` plan (Install / Update / Apply / nothing); keep decisions out of the view,
+    as the maintainer asked on #103. 51 `TxtDlssgSm86*` keys in all 14 languages.
   - Pinned: mod `0.3.5` @ `9621db5`. To bump the mod version, run
     `fork/tools/pin-dlssg-manifest.sh <tag>`, then rerun the harness.
 - **Verified:**
   - The user's manual pass on FF16 / RTX 3080 Ti (all steps as expected, including OptiScaler
     together with the mod, the collision refusal, and a byte-identical uninstall).
-  - `fork/tools/dlssg-harness` (33 checks).
+  - The user's later check of the manual-install blocker in the app, with their 0.2.4 copy.
+  - `fork/tools/dlssg-harness` (41 checks).
   - Windows and linux-x64 builds.
 
 ## What is unproven
 
-- The manual-install message in the real UI: it was added after the user's pass and is covered by
-  the harness only.
+- The pending-action refactor (`d677a4c`) in the real UI: it came after the user's manual pass and
+  is covered by the harness only. A quick look at the button labels (Install / Apply / Update /
+  Installed) before the PR is opened would close that.
 - Games other than FF16. Notably, no MFG-capable game (Streamline ≥ 2.8, for 3X/4X/6X) has been
   tried, and neither has a UE game whose exe sits in `Binaries\Win64`.
 

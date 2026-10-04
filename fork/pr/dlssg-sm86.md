@@ -3,8 +3,8 @@
 Fork-only. This is the text the user pastes into the upstream PR. It is never opened by an agent.
 
 - Branch: `pr/dlssg-sm86` on `origin` (shyoo/Optiscaler-Client), cut from `upstream/general` @
-  `f73cf2c`, head `1b7a682`: **one squashed commit**, at the user's request; its tree is identical to the
-  7-commit series on `general`. Pushed 2026-10-03.
+  `f73cf2c`, head `b0a7d18`: **one squashed commit**, at the user's request; its product files are
+  identical to the 8 product commits on `general`. Pushed 2026-10-03.
 - Open the PR at:
   https://github.com/Optiscaler-Client/Optiscaler-Client/compare/general...shyoo:Optiscaler-Client:pr/dlssg-sm86
 - Base: `Optiscaler-Client:general`
@@ -60,17 +60,21 @@ DLSS-G. The nvngx FG-provider integration and auto-selection are left for follow
 - **README:** feature line and acknowledgments (sdli1995; Coldwood1026 for the SM75 port). No
   CHANGELOG entry; I left that for you.
 
+### Structure
+
+- **Logic in services, none in the view.** `DlssgSm86PackageService` (pinned manifest, download,
+  verification, cache) and `DlssgSm86Service` (Windows-only: eligibility, install / update /
+  uninstall, INI, HAGS) do all the work. The service also decides what the action button does for
+  the current selection (`GetPendingAction`: Install / Update / Apply / nothing), so the window
+  only displays results and forwards clicks.
+- **The window part** is its own partial, `ManageGameWindow.DlssgSm86.cs`, with four one-line hooks
+  in the main file, to keep merges with that file cheap.
+- **Platform split:** the service comes from `PlatformServiceFactory.CreateDlssgSm86Service()`,
+  which returns null off Windows, as the GPU and gamepad services do. `DlssgSm86Records` holds the
+  platform-neutral lookup that the analyzer and OptiScaler's collision guard use.
+
 ### Choices you may want changed
 
-- **No ViewModel / DI.** I followed the existing code-behind pattern: all logic is in
-  `DlssgSm86Service` / `DlssgSm86PackageService`. The window part is a thin partial
-  (`ManageGameWindow.DlssgSm86.cs`), with four one-line hooks in the main file. The service comes
-  from `PlatformServiceFactory.CreateDlssgSm86Service()` (null off Windows). Happy to move it into
-  a ViewModel if you want MVVM to start here.
-- **No tests in the PR.** There's no test project in the repo. I ran an end-to-end harness against
-  fake game folders: eligibility, real pinned downloads and verification, install, build switch,
-  byte-identical uninstall, rollback, the collision guard and tamper detection. I'm happy to add
-  those as tests if you point me at your test project.
 - **Placement:** the Experimental zone, next to RenoDX and Setup NR.
 - **About 120 MB per build** when all four names are free; the size is shown on the Install
   button. This could be cut to `version` + `winmm` if you prefer.
@@ -86,27 +90,16 @@ By hand on an **RTX 3080 Ti, Windows 11**, with **Final Fantasy XVI** (Streamlin
   (Update) keeps the user's INI values.
 - Uninstall with a hand-edited INI asks first (Delete / Keep). Afterwards the game folder is
   byte-identical to before the install (SHA-256 of every top-level file).
-- OptiScaler with injection `winmm.dll` is refused with the message above, and nothing is written.
+- OptiScaler with injection `winmm.dll` is refused with an error naming the mod's proxy names, and
+  nothing is written.
   OptiScaler 0.9.4 via `dxgi.dll` (FG disabled) installs next to the mod, and both work in game.
   Uninstalling OptiScaler leaves the mod in place, and uninstalling the mod afterwards restores the
   folder exactly.
+- A copy of the mod placed by hand (an older 0.2.4 `version.dll`) blocks the install with the
+  manual-install message, and nothing is written.
 - The Cache Management page lists and deletes cached builds.
 - UI: checked in Korean and German, at a narrow window width, and with gamepad navigation through
   the card.
-
-Automated, against fake game folders with the real pinned downloads (33 checks; the harness lives
-outside this repo):
-- eligibility: all four names free; an ASI loader on `dinput8.dll`; every name taken; no DLSS-G;
-  anti-cheat;
-- manual installs: a hand-copied 0.3.5 proxy, a hand-copied `dxgi.dll`, and a real 0.2.4 proxy are
-  recognised; an unrelated `dxgi.dll` doesn't block;
-- verification: wrong hash → file deleted; a tampered cache file is downloaded again;
-- install, multiplier change, build switch with INI carry-over and the 6X→4X clamp;
-- uninstall leaves the folder byte-identical, including a pre-existing `dlssg_sm86\` folder;
-- an edited INI is kept on request;
-- rollback of a failed install leaves the folder unchanged with no record;
-- the `InstallOptiScaler` collision guard;
-- OptiScaler's reverse lookup ignores the component record.
 
 Builds: Windows and linux-x64, no new warnings.
 

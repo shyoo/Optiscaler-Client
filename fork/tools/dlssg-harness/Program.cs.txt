@@ -64,7 +64,17 @@ var iniEntry = b109.Ini!;
 var bogus = Path.Combine(root, "bogus.ini");
 File.WriteAllText(bogus, new string('a', (int)iniEntry.Size));
 try { DlssgSm86PackageService.VerifyFile(bogus, iniEntry, manifest.SignerThumbprint); Check(false, "hash mismatch rejected"); }
-catch (DlssgSm86VerificationException) { Check(!File.Exists(bogus), "hash mismatch rejected and file deleted"); }
+catch (DlssgSm86VerificationException ex) { Check(!File.Exists(bogus) && ex.Message == "dlssg_sm86.ini: SHA-256 does not match the pinned value", $"hash mismatch rejected and file deleted ({ex.Message})"); }
+
+// ── Pending action (what the window's action button does) ──────────────────
+var b101 = manifest.FindBuild("310.1")!;
+Check(DlssgSm86Multipliers.Clamp(5, b101) == 3 && DlssgSm86Multipliers.Clamp(5, b109) == 5 && DlssgSm86Multipliers.For(b101).SequenceEqual(new[] { 1, 2, 3 }), "multiplier clamp: 6X → 4X on 310.1 only");
+var plan = service.GetPendingAction(service.GetEligibility(asi), null, b109, 5);
+Check(plan.Action == DlssgSm86PendingAction.Install && plan.CanRun && !plan.UpdateAvailable, $"not installed → Install ({plan})");
+plan = service.GetPendingAction(service.GetEligibility(ac), null, b109, 5);
+Check(plan.Action == DlssgSm86PendingAction.Install && !plan.CanRun, "blocked game → Install, but can't run");
+try { await service.InstallAsync(full, "310.9", 3); Check(false, "install into a blocked game refused"); }
+catch (DlssgSm86BlockedException ex) { Check(ex.Eligibility.Blocker == DlssgSm86Blocker.NoFreeProxyName, $"install into a blocked game refused with its blocker ({ex.Eligibility.Blocker})"); }
 
 // ── Install / update / uninstall on the ASI game (pre-existing files must survive byte-identical) ──
 File.WriteAllText(Path.Combine(asi.InstallPath, "dlssg_sm86.ini"), "[General]\nEnabled=0\n"); // leftover manual INI
@@ -76,6 +86,16 @@ var r = await service.InstallAsync(asi, "310.9", 5, progress);
 Check(r.ProxyNames.SequenceEqual(new[] { "version.dll", "winmm.dll", "dbghelp.dll" }) && r.MaxGeneratedFrames == 5 && !r.MultiplierClamped, "install 310.9 at 6X into three free names");
 var state = service.GetInstallState(asi);
 Check(state?.Build == "310.9" && state.MaxGeneratedFrames == 5 && asi.IsDlssgSm86Installed && asi.DlssgSm86Version == "0.3.5", "install state + analyzer fields");
+var asiElig = service.GetEligibility(asi);
+plan = service.GetPendingAction(asiElig, state, b109, 5);
+Check(plan.Action == DlssgSm86PendingAction.None && !plan.CanRun, $"same selection as installed → None ({plan})");
+plan = service.GetPendingAction(asiElig, state, b109, 2);
+Check(plan.Action == DlssgSm86PendingAction.ApplyMultiplier && plan.CanRun, $"only the multiplier differs → ApplyMultiplier ({plan})");
+plan = service.GetPendingAction(asiElig, state, b101, 3);
+Check(plan.Action == DlssgSm86PendingAction.Update && plan.CanRun, $"other runtime selected → Update ({plan})");
+var oldState = new DlssgSm86InstallState { Version = "0.2.4", Build = "310.9", MaxGeneratedFrames = 5 };
+plan = service.GetPendingAction(asiElig, oldState, b109, 5);
+Check(plan.Action == DlssgSm86PendingAction.Update && plan.UpdateAvailable, $"older mod installed → Update, update available ({plan})");
 Check(File.ReadAllText(Path.Combine(asi.InstallPath, "dlssg_sm86.ini")).Contains("; DLSSG SM86"), "factory INI replaced the leftover one (comments kept)");
 Check(DlssgSm86Records.GetInstalledProxyNames(asi, asi.InstallPath).Count == 3, "collision guard sees our proxy names");
 Check(new BackupStoreService().FindBackupDirUnder(gamesRoot) == null, "OptiScaler reverse lookup skips the component record");
