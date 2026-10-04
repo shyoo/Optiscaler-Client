@@ -50,7 +50,18 @@ Steps A–G are implemented. These choices replace what §2–§3 say:
   too, so no English detail is left in the error dialogs.
 - **Downloads:** only the proxies needed for the free names are downloaded (lazily, per file).
 
-Verified by: `fork/tools/dlssg-harness` (41 checks), Windows + `linux-x64` builds with no
+- **#117 review (2026-10-04), replaces D1 below:** no buttons of its own. The main Auto/Manual
+  Install runs DLSS FG after OptiScaler / the FSR 4 swap (into OptiScaler's folder), or alone when
+  both are None; Manual Install alone asks for the exe (`targetDirectory` on `GetEligibility` /
+  `InstallAsync`). The build selector has "None" (default). `GetPendingAction` takes a null build
+  for None and returns `Remove` when installed; the window runs Remove only before an OptiScaler
+  (re)install, like the FSR 4 swap at None (user's choice). The main Uninstall removes DLSS FG
+  first. "Update config only" is off while a DLSS FG change is pending. The badge has its own
+  `AddedMod` colour. The status line is gone; only the blocker reason and "update available" are
+  shown, in info boxes. `DownloadBytes` / `GetMissingBytes` were dropped with the button label.
+  Strings: 45 keys.
+
+Verified by: `fork/tools/dlssg-harness` (49 checks after the #117 review), Windows + `linux-x64` builds with no
 warnings, and the user's manual pass on FF16 / RTX 3080 Ti (task H, steps 1–10, all as expected,
 and later the manual-install blocker against their 0.2.4 `version.dll`). The pending-action move
 came after that pass; the user then confirmed Apply and Update labels in the app.

@@ -8,12 +8,12 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 - The fork's `general` = upstream `general` @ `f73cf2c` (v1.0.8), plus the fork-only workspace
   files, plus the **dlssg_for_sm86 feature** (t909). Local `general` in the main checkout is ahead
   of `origin/general`: the landing policy doesn't push, and the user pushes when they choose to.
-- **dlssg_for_sm86 is done and the PR branch is pushed**: `origin/pr/dlssg-sm86` (head `b0a7d18`).
-  It holds **one squashed commit**, at the user's request (`general` keeps the 8 product commits,
-  same product files), cut from `upstream/general` @ `f73cf2c`, with the AGENTS.md guards
-  clean, the same product content as `general`, and a build with 0 warnings. **The user opens the
-  upstream PR** with the text in [`fork/pr/dlssg-sm86.md`](fork/pr/dlssg-sm86.md). Agents never
-  open it.
+- **dlssg_for_sm86 is upstream PR #117** (opened by the user), from `origin/pr/dlssg-sm86`, cut
+  from `upstream/general` @ `f73cf2c`: `b0a7d18` (the feature, squashed at the user's request)
+  and `ca1145b` (the maintainer's review of 2026-10-04: main install buttons, None, badge colour,
+  no status line). The description and a reply draft are in
+  [`fork/pr/dlssg-sm86.md`](fork/pr/dlssg-sm86.md); **the user pastes and posts them**. Agents
+  never write on upstream.
 - Design: [`fork/PLAN-dlssg-sm86.md`](fork/PLAN-dlssg-sm86.md). Concrete plan and the **as-built
   deviations**: top of [`fork/IMPL-dlssg-sm86.md`](fork/IMPL-dlssg-sm86.md). Read that before
   changing the feature. In short:
@@ -25,19 +25,24 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
     keeps it out of `FindBackupDirUnder`.
   - A copy of the mod placed by hand (any version) is detected by the UTF-16 `dlssg_sm86.ini` string
     in the DLL and blocks the install (`DlssgSm86Blocker.ManualInstall`).
-  - UI: `Views/ManageGameWindow.DlssgSm86.cs` (card in the Experimental zone, four hooks in the main
-    file) and `Views/CacheManagementWindow.DlssgSm86.cs`. The window only renders the service's
-    `GetPendingAction` plan (Install / Update / Apply / nothing); keep decisions out of the view,
-    as the maintainer asked on #103. 51 `TxtDlssgSm86*` keys in all 14 languages.
+  - UI: `Views/ManageGameWindow.DlssgSm86.cs` (selectors in the Experimental zone; hooks in the
+    main file's install / uninstall / button-state code) and `Views/CacheManagementWindow.DlssgSm86.cs`.
+    No buttons of its own: the main Auto/Manual Install and Uninstall run it, following the
+    service's `GetPendingAction` plan (Install / Update / Apply / Remove / nothing); keep decisions
+    out of the view, as the maintainer asked on #103. "None" works like the FSR 4 swap at None.
+    45 `TxtDlssgSm86*` keys in all 14 languages.
   - Pinned: mod `0.3.5` @ `9621db5`. To bump the mod version, run
     `fork/tools/pin-dlssg-manifest.sh <tag>`, then rerun the harness.
 - **Verified:**
   - The user's manual pass on FF16 / RTX 3080 Ti (all steps as expected, including OptiScaler
     together with the mod, the collision refusal, and a byte-identical uninstall).
   - The user's later checks in the app: the manual-install blocker with their 0.2.4 copy, and the
-    button labels after the pending-action refactor (Apply on a multiplier change, Update on a
-    runtime switch).
-  - `fork/tools/dlssg-harness` (41 checks).
+    button labels after the pending-action refactor.
+  - After the #117 review (2026-10-04), the user's FF16 checks of the new flow: DLSS FG alone,
+    None changing nothing on its own, Uninstall of DLSS FG alone, and None + OptiScaler reinstall
+    removing it. Not re-checked by hand: Manual Install's exe picker, the combined uninstall
+    message, the collision text, gamepad navigation.
+  - `fork/tools/dlssg-harness` (49 checks).
   - Windows and linux-x64 builds.
 
 ## What is unproven
@@ -47,9 +52,9 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 
 ## Next
 
-- The user opens the upstream PR from `pr/dlssg-sm86`. Review feedback becomes new commits on
-  `general` (via Warmstart tasks), then gets cherry-picked onto `pr/dlssg-sm86` and pushed to
-  `origin`. Never force-push once the PR is open, unless the user asks.
+- Wait for the maintainer's next review on #117. Feedback becomes new commits on `general` (via
+  Warmstart tasks), then gets cherry-picked onto `pr/dlssg-sm86` and pushed to `origin`. Never
+  force-push while the PR is open, unless the user asks.
 - Follow-ups agreed on #103 (each its own PR later): the Diagnose button (plan §5 PR 2), and FG
   provider integration plus auto-selection in `GetRecommendation` (PR 3).
 
