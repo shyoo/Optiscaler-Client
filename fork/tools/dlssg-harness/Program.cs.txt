@@ -96,6 +96,12 @@ Check(plan.Action == DlssgSm86PendingAction.Update && plan.CanRun, $"other runti
 var oldState = new DlssgSm86InstallState { Version = "0.2.4", Build = "310.9", MaxGeneratedFrames = 5 };
 plan = service.GetPendingAction(asiElig, oldState, b109, 5);
 Check(plan.Action == DlssgSm86PendingAction.Update && plan.UpdateAvailable, $"older mod installed → Update, update available ({plan})");
+plan = service.GetPendingAction(asiElig, state, null, 5);
+Check(plan.Action == DlssgSm86PendingAction.Remove && plan.CanRun, $"None selected while installed → Remove ({plan})");
+plan = service.GetPendingAction(service.GetEligibility(ac), state, null, 5);
+Check(plan.Action == DlssgSm86PendingAction.Remove && plan.CanRun, $"removal is never blocked ({plan})");
+plan = service.GetPendingAction(service.GetEligibility(clean), null, null, 5);
+Check(plan.Action == DlssgSm86PendingAction.None && !plan.CanRun, $"None selected, nothing installed → None ({plan})");
 Check(File.ReadAllText(Path.Combine(asi.InstallPath, "dlssg_sm86.ini")).Contains("; DLSSG SM86"), "factory INI replaced the leftover one (comments kept)");
 Check(DlssgSm86Records.GetInstalledProxyNames(asi, asi.InstallPath).Count == 3, "collision guard sees our proxy names");
 Check(new BackupStoreService().FindBackupDirUnder(gamesRoot) == null, "OptiScaler reverse lookup skips the component record");
@@ -128,6 +134,22 @@ await service.InstallAsync(clean, "310.9", 3);
 File.AppendAllText(Path.Combine(clean.InstallPath, "dlssg_sm86.ini"), "\n; my note\n");
 u = service.Uninstall(clean, keepModifiedIni: true);
 Check(u.KeptModifiedFiles.SequenceEqual(new[] { "dlssg_sm86.ini" }) && File.Exists(Path.Combine(clean.InstallPath, "dlssg_sm86.ini")) && !File.Exists(Path.Combine(clean.InstallPath, "version.dll")), "edited INI kept when asked, proxies removed");
+
+// ── Manual Install: a folder the user picked ────────────────────────────────
+var picked = MakeGame("PickedGame", d => Directory.CreateDirectory(Path.Combine(d, "bin")));
+var pickedBin = Path.Combine(picked.InstallPath, "bin");
+var pe = service.GetEligibility(picked, pickedBin);
+Check(pe.IsEligible && pe.TargetDirectory == pickedBin, "picked folder becomes the target");
+Check(service.GetEligibility(picked, Path.Combine(picked.InstallPath, "missing")).Blocker == DlssgSm86Blocker.NoTargetDirectory, "missing picked folder → NoTargetDirectory");
+await service.InstallAsync(picked, "310.9", 3, null, pickedBin);
+Check(File.Exists(Path.Combine(pickedBin, "version.dll")) && !File.Exists(Path.Combine(picked.InstallPath, "version.dll")) && service.GetInstallState(picked)?.TargetDirectory == pickedBin, "installed into the picked folder");
+var pickedIni = Path.Combine(pickedBin, "dlssg_sm86.ini");
+File.WriteAllText(pickedIni, File.ReadAllText(pickedIni).Replace("Level=1", "Level=2"));
+await service.InstallAsync(picked, "310.9", 3, null, picked.InstallPath);
+Check(File.Exists(Path.Combine(picked.InstallPath, "version.dll")) && !File.Exists(Path.Combine(pickedBin, "version.dll")) && !File.Exists(pickedIni)
+      && File.ReadAllText(Path.Combine(picked.InstallPath, "dlssg_sm86.ini")).Contains("Level=2"), "reinstall into another picked folder moves it and carries the INI over");
+service.Uninstall(picked, keepModifiedIni: false);
+Check(!File.Exists(Path.Combine(picked.InstallPath, "version.dll")) && service.GetInstallState(picked) == null, "uninstall after a move");
 File.Delete(Path.Combine(clean.InstallPath, "dlssg_sm86.ini"));
 
 // ── Rollback: a staging path blocked by a directory makes the install fail midway ──
