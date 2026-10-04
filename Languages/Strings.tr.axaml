@@ -1159,6 +1159,12 @@ Bu sürüm indirilemez. İnternet bağlantınızı kontrol edip daha sonra tekra
     <x:String x:Key="TxtDlssgSm86KeepIni">INI dosyamı koru</x:String>
     <x:String x:Key="TxtDlssgSm86KeptFiles">Bu dosyalar kurulumdan sonra değiştirildiği için yerinde bırakıldı: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86VerifyFailed">İndirilen bir dosya doğrulamadan geçemedi ve silindi: {0}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySize">boyut {0} bayt, beklenen {1}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyHash">SHA-256 sabitlenmiş değerle eşleşmiyor</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyUnsigned">dosya imzalı değil</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySigner">beklenmeyen bir sertifikayla imzalanmış ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyError">denetlenemedi ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86BackupFailed">{0} yüklemeden önce yedeklenemedi.</x:String>
     <x:String x:Key="TxtDlssgSm86InstallFailed">DLSS FG for RTX 20/30 yüklenemedi: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86UninstallFailed">DLSS FG for RTX 20/30 kaldırılamadı: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86CollisionMsg">{0} bu oyun klasöründe zaten DLSS FG for RTX 20/30 tarafından kullanılıyor ({1}). Başka bir enjeksiyon yöntemi seçin veya önce DLSS FG for RTX 20/30'u kaldırın.</x:String>

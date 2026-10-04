@@ -1162,6 +1162,12 @@
     <x:String x:Key="TxtDlssgSm86KeepIni">INI を残す</x:String>
     <x:String x:Key="TxtDlssgSm86KeptFiles">次のファイルはインストール後に変更されていたため、そのまま残しました: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86VerifyFailed">ダウンロードしたファイルが検証に失敗したため削除しました: {0}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySize">サイズが {0} バイトです（想定: {1}）</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyHash">SHA-256 が固定値と一致しません</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyUnsigned">ファイルに署名がありません</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySigner">想定外の証明書で署名されています ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyError">確認できませんでした ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86BackupFailed">インストール前に {0} をバックアップできませんでした。</x:String>
     <x:String x:Key="TxtDlssgSm86InstallFailed">DLSS FG for RTX 20/30 をインストールできませんでした: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86UninstallFailed">DLSS FG for RTX 20/30 をアンインストールできませんでした: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86CollisionMsg">{0} はこのゲームフォルダーで DLSS FG for RTX 20/30 がすでに使用しています（{1}）。別の注入方法を選ぶか、先に DLSS FG for RTX 20/30 をアンインストールしてください。</x:String>

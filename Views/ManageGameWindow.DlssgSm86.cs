@@ -148,14 +148,12 @@ namespace OptiscalerClient.Views
             if (cmbMultiplier == null || build == null) return;
 
             var current = preferred ?? SelectedDlssgSm86Multiplier() ?? DlssgSm86Multipliers.Default;
-            var items = DlssgSm86Multipliers.All
-                .Where(m => m <= build.MaxGeneratedFrames)
+            var items = DlssgSm86Multipliers.For(build)
                 .Select(m => new ComboBoxItem { Content = DlssgSm86Multipliers.Label(m), Tag = m })
                 .ToList();
             cmbMultiplier.ItemsSource = items;
-            // Same clamp as the service: a 6X choice becomes 4X on a build that tops out there.
-            var clamped = items.LastOrDefault(i => (int)i.Tag! <= current) ?? items.LastOrDefault();
-            cmbMultiplier.SelectedItem = clamped;
+            var clamped = DlssgSm86Multipliers.Clamp(current, build);
+            cmbMultiplier.SelectedItem = items.FirstOrDefault(i => (int)i.Tag! == clamped);
         }
 
         private DlssgSm86BuildEntry? SelectedDlssgSm86Build()
@@ -167,8 +165,8 @@ namespace OptiscalerClient.Views
         private int? SelectedDlssgSm86Multiplier() =>
             (this.FindControl<ComboBox>("CmbDlssgSm86Multiplier")?.SelectedItem as ComboBoxItem)?.Tag as int?;
 
-        /// <summary>Sets the action button, the status line and which controls are enabled, from the last
-        /// eligibility/install state plus the current selection. Cheap: no disk access.</summary>
+        /// <summary>Asks the service what the action button does for the current selection, then sets the
+        /// button, the status line and which controls are enabled. Cheap: no folder scan.</summary>
         private void UpdateDlssgSm86Controls()
         {
             var service = DlssgSm86Service;
@@ -187,32 +185,18 @@ namespace OptiscalerClient.Views
 
             bool installed = state != null;
             bool blocked = !eligibility.IsEligible;
-            bool versionOrBuildChanged = installed &&
-                (!string.Equals(state!.Version, manifest.ModVersion, StringComparison.OrdinalIgnoreCase) ||
-                 !string.Equals(state.Build, build.Id, StringComparison.OrdinalIgnoreCase));
-            bool multiplierChanged = installed && state!.MaxGeneratedFrames != multiplier;
+            var plan = service.GetPendingAction(eligibility, state, build, multiplier);
+            bool actionEnabled = !_dlssgSm86Busy && plan.CanRun;
 
-            string label;
-            bool actionEnabled = !_dlssgSm86Busy && !blocked;
-            if (!installed)
+            btnInstall.Content = plan.Action switch
             {
-                var files = DlssgSm86PackageService.SelectFiles(build, eligibility.FreeProxyNames);
-                var missing = service.Packages.GetMissingBytes(build, files);
-                label = missing > 0
-                    ? string.Format(GetResourceString("TxtDlssgSm86Install", "Install ({0} MB)"), Math.Ceiling(missing / 1048576.0))
-                    : GetResourceString("TxtDlssgSm86InstallCached", "Install");
-            }
-            else if (versionOrBuildChanged)
-                label = GetResourceString("TxtDlssgSm86Update", "Update");
-            else if (multiplierChanged)
-                label = GetResourceString("TxtDlssgSm86Apply", "Apply");
-            else
-            {
-                label = GetResourceString("TxtDlssgSm86Installed", "Installed");
-                actionEnabled = false;
-            }
-
-            btnInstall.Content = label;
+                DlssgSm86PendingAction.Install when plan.DownloadBytes > 0 =>
+                    string.Format(GetResourceString("TxtDlssgSm86Install", "Install ({0} MB)"), Math.Ceiling(plan.DownloadBytes / 1048576.0)),
+                DlssgSm86PendingAction.Install => GetResourceString("TxtDlssgSm86InstallCached", "Install"),
+                DlssgSm86PendingAction.Update => GetResourceString("TxtDlssgSm86Update", "Update"),
+                DlssgSm86PendingAction.ApplyMultiplier => GetResourceString("TxtDlssgSm86Apply", "Apply"),
+                _ => GetResourceString("TxtDlssgSm86Installed", "Installed")
+            };
             btnInstall.IsEnabled = actionEnabled;
             btnInstall.Classes.Set("BtnSuccess", actionEnabled);
             btnInstall.Classes.Set("BtnBase", !actionEnabled);
@@ -225,38 +209,23 @@ namespace OptiscalerClient.Views
             if (cmbMultiplier != null) cmbMultiplier.IsEnabled = !_dlssgSm86Busy && !blocked;
 
             if (txtStatus != null)
-                txtStatus.Text = BuildDlssgSm86StatusText(manifest, eligibility, state);
+                txtStatus.Text = BuildDlssgSm86StatusText(manifest, eligibility, state, plan.UpdateAvailable);
         }
 
-        private string BuildDlssgSm86StatusText(DlssgSm86PackageManifest manifest, DlssgSm86Eligibility eligibility, DlssgSm86InstallState? state)
+        private string BuildDlssgSm86StatusText(DlssgSm86PackageManifest manifest, DlssgSm86Eligibility eligibility,
+            DlssgSm86InstallState? state, bool updateAvailable)
         {
             var lines = new List<string>();
             if (state != null)
             {
                 lines.Add(string.Format(GetResourceString("TxtDlssgSm86StatusInstalled", "Installed: v{0} (runtime {1}) as {2} in {3}"),
                     state.Version, state.Build, string.Join(", ", state.ProxyNames), state.TargetDirectory));
-                if (!string.Equals(state.Version, manifest.ModVersion, StringComparison.OrdinalIgnoreCase))
+                if (updateAvailable)
                     lines.Add(string.Format(GetResourceString("TxtDlssgSm86StatusUpdateAvailable", "Update available: v{0}"), manifest.ModVersion));
             }
 
             if (!eligibility.IsEligible)
-            {
-                lines.Add(eligibility.Blocker switch
-                {
-                    DlssgSm86Blocker.NoTargetDirectory => GetResourceString("TxtDlssgSm86BlockerNoTargetDirectory", "Could not find the folder of the game's executable."),
-                    DlssgSm86Blocker.AntiCheat => GetResourceString("TxtDlssgSm86BlockerAntiCheat", "Anti-cheat detected: DLSS FG for RTX 20/30 is disabled for this game."),
-                    DlssgSm86Blocker.NoDlssG => GetResourceString("TxtDlssgSm86BlockerNoDlssG", "This game doesn't ship DLSS Frame Generation (Streamline), so there is nothing for the mod to enable."),
-                    DlssgSm86Blocker.NotDx12 => GetResourceString("TxtDlssgSm86BlockerNotDx12", "DLSS FG for RTX 20/30 only works in DirectX 12 games."),
-                    DlssgSm86Blocker.ManualInstall => string.Format(
-                        GetResourceString("TxtDlssgSm86BlockerManualInstall",
-                            "dlssg_for_sm86 (manual install) is already in this folder: {0}. Remove those files first, then reopen this window."),
-                        string.Join(", ", eligibility.Occupied.Select(o => o.FileName))),
-                    DlssgSm86Blocker.NoFreeProxyName => string.Format(
-                        GetResourceString("TxtDlssgSm86BlockerNoFreeProxyName", "Every loader name the mod can use is already taken: {0}"),
-                        FormatDlssgSm86Occupants(eligibility.Occupied)),
-                    _ => eligibility.Blocker.ToString()
-                });
-            }
+                lines.Add(DescribeDlssgSm86Blocker(eligibility));
             else if (state == null)
             {
                 lines.Add(string.Format(GetResourceString("TxtDlssgSm86StatusReady", "Will be installed as {0} in {1}"),
@@ -268,6 +237,23 @@ namespace OptiscalerClient.Views
 
             return string.Join(Environment.NewLine, lines);
         }
+
+        private string DescribeDlssgSm86Blocker(DlssgSm86Eligibility eligibility) =>
+            eligibility.Blocker switch
+            {
+                DlssgSm86Blocker.NoTargetDirectory => GetResourceString("TxtDlssgSm86BlockerNoTargetDirectory", "Could not find the folder of the game's executable."),
+                DlssgSm86Blocker.AntiCheat => GetResourceString("TxtDlssgSm86BlockerAntiCheat", "Anti-cheat detected: DLSS FG for RTX 20/30 is disabled for this game."),
+                DlssgSm86Blocker.NoDlssG => GetResourceString("TxtDlssgSm86BlockerNoDlssG", "This game doesn't ship DLSS Frame Generation (Streamline), so there is nothing for the mod to enable."),
+                DlssgSm86Blocker.NotDx12 => GetResourceString("TxtDlssgSm86BlockerNotDx12", "DLSS FG for RTX 20/30 only works in DirectX 12 games."),
+                DlssgSm86Blocker.ManualInstall => string.Format(
+                    GetResourceString("TxtDlssgSm86BlockerManualInstall",
+                        "dlssg_for_sm86 (manual install) is already in this folder: {0}. Remove those files first, then reopen this window."),
+                    string.Join(", ", eligibility.Occupied.Select(o => o.FileName))),
+                DlssgSm86Blocker.NoFreeProxyName => string.Format(
+                    GetResourceString("TxtDlssgSm86BlockerNoFreeProxyName", "Every loader name the mod can use is already taken: {0}"),
+                    FormatDlssgSm86Occupants(eligibility.Occupied)),
+                _ => eligibility.Blocker.ToString()
+            };
 
         private string FormatDlssgSm86Occupants(IEnumerable<DlssgSm86ProxyOccupant> occupants) =>
             string.Join(", ", occupants.Select(o => $"{o.FileName} ({o.Owner switch
@@ -307,8 +293,11 @@ namespace OptiscalerClient.Views
         {
             var service = DlssgSm86Service;
             var build = SelectedDlssgSm86Build();
-            if (service == null || build == null || _dlssgSm86Busy) return;
+            var eligibility = _dlssgSm86Eligibility;
+            if (service == null || build == null || eligibility == null || _dlssgSm86Busy) return;
             var multiplier = SelectedDlssgSm86Multiplier() ?? DlssgSm86Multipliers.Default;
+            var plan = service.GetPendingAction(eligibility, _dlssgSm86State, build, multiplier);
+            if (!plan.CanRun) return;
             var game = _game;
 
             var bdProgress = this.FindControl<Border>("BdProgress");
@@ -319,12 +308,8 @@ namespace OptiscalerClient.Views
             SetDlssgSm86Busy(true);
             try
             {
-                bool onlyMultiplier = _dlssgSm86State != null &&
-                    string.Equals(_dlssgSm86State.Version, service.Packages.Manifest?.ModVersion, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(_dlssgSm86State.Build, build.Id, StringComparison.OrdinalIgnoreCase);
-
                 DlssgSm86InstallResult result;
-                if (onlyMultiplier)
+                if (plan.Action == DlssgSm86PendingAction.ApplyMultiplier)
                 {
                     result = await Task.Run(() => service.SetMaxGeneratedFrames(game, multiplier));
                     _ = ShowToastAsync(string.Format(GetResourceString("TxtDlssgSm86AppliedToast", "Max frame generation set to {0}."),
@@ -349,6 +334,12 @@ namespace OptiscalerClient.Views
                             build.Id, DlssgSm86Multipliers.Label(build.MaxGeneratedFrames))
                         : GetResourceString("TxtDlssgSm86InstalledToast", "DLSS FG for RTX 20/30 installed."));
                 }
+            }
+            catch (DlssgSm86BlockedException ex)
+            {
+                await new ConfirmDialog(this, title, string.Format(
+                    GetResourceString("TxtDlssgSm86InstallFailed", "Could not install DLSS FG for RTX 20/30: {0}"), DescribeDlssgSm86Blocker(ex.Eligibility)),
+                    isAlert: true).ShowDialog<object>(this);
             }
             catch (DlssgSm86VerificationException ex)
             {

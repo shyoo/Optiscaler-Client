@@ -1167,6 +1167,12 @@ Esta versión no está disponible para descarga. Verificá tu conexión a intern
     <x:String x:Key="TxtDlssgSm86KeepIni">Conservar mi INI</x:String>
     <x:String x:Key="TxtDlssgSm86KeptFiles">Estos archivos se modificaron después de la instalación y se dejaron en su sitio: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86VerifyFailed">Un archivo descargado no superó la verificación y se eliminó: {0}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySize">el tamaño es {0} bytes, se esperaba {1}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyHash">el SHA-256 no coincide con el valor fijado</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyUnsigned">el archivo no está firmado</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySigner">firmado con un certificado inesperado ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyError">no se pudo comprobar ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86BackupFailed">No se pudo hacer una copia de seguridad de {0} antes de instalar.</x:String>
     <x:String x:Key="TxtDlssgSm86InstallFailed">No se pudo instalar DLSS FG para RTX 20/30: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86UninstallFailed">No se pudo desinstalar DLSS FG para RTX 20/30: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86CollisionMsg">{0} ya lo usa DLSS FG para RTX 20/30 en esta carpeta del juego ({1}). Elige otro método de inyección o desinstala primero DLSS FG para RTX 20/30.</x:String>

@@ -197,19 +197,22 @@ namespace OptiscalerClient.Services
             {
                 var length = new FileInfo(path).Length;
                 if (length != entry.Size)
-                    failure = $"size {length} does not match the expected {entry.Size}";
+                    failure = string.Format(DlssgSm86Records.GetString("TxtDlssgSm86VerifySize",
+                        "size is {0} bytes, expected {1}"), length, entry.Size);
                 else if (!string.Equals(ComputeSha256(path), entry.Sha256, StringComparison.OrdinalIgnoreCase))
-                    failure = "SHA-256 does not match the pinned value";
+                    failure = DlssgSm86Records.GetString("TxtDlssgSm86VerifyHash", "SHA-256 does not match the pinned value");
                 else if (entry.IsProxy && OperatingSystem.IsWindows())
                 {
                     var thumbprint = GetSignerThumbprint(path);
                     if (!string.Equals(thumbprint, signerThumbprint, StringComparison.OrdinalIgnoreCase))
-                        failure = thumbprint == null ? "file is not signed" : $"unexpected signer {thumbprint}";
+                        failure = thumbprint == null
+                            ? DlssgSm86Records.GetString("TxtDlssgSm86VerifyUnsigned", "the file is not signed")
+                            : string.Format(DlssgSm86Records.GetString("TxtDlssgSm86VerifySigner", "signed by an unexpected certificate ({0})"), thumbprint);
                 }
             }
             catch (Exception ex)
             {
-                failure = $"could not be verified ({ex.Message})";
+                failure = string.Format(DlssgSm86Records.GetString("TxtDlssgSm86VerifyError", "could not be checked ({0})"), ex.Message);
             }
 
             if (failure == null) return;

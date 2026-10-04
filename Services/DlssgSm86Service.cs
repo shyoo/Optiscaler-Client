@@ -49,6 +49,11 @@ namespace OptiscalerClient.Services
 
         HagsState GetHagsState();
 
+        /// <summary>What the action button does for this selection: install, update, apply only the
+        /// multiplier, or nothing. Cheap: reads only the download cache's file sizes.</summary>
+        DlssgSm86ActionPlan GetPendingAction(DlssgSm86Eligibility eligibility, DlssgSm86InstallState? state,
+            DlssgSm86BuildEntry build, int maxGeneratedFrames);
+
         /// <summary>Downloads (if needed) and installs <paramref name="buildId"/>. Also performs an update
         /// or build switch when the mod is already installed, carrying the user's INI values over.</summary>
         Task<DlssgSm86InstallResult> InstallAsync(Game game, string buildId, int maxGeneratedFrames,
@@ -63,6 +68,19 @@ namespace OptiscalerClient.Services
         /// <summary>Removes the mod and restores anything it replaced. Files changed since install are left
         /// alone and reported; <paramref name="keepModifiedIni"/> decides that for the INI.</summary>
         DlssgSm86UninstallResult Uninstall(Game game, bool keepModifiedIni);
+    }
+
+    /// <summary>Thrown by <see cref="IDlssgSm86Service.InstallAsync"/> when the game turned out to be blocked
+    /// on the re-check (the folder changed after the window last looked).</summary>
+    public sealed class DlssgSm86BlockedException : Exception
+    {
+        public DlssgSm86Eligibility Eligibility { get; }
+
+        public DlssgSm86BlockedException(DlssgSm86Eligibility eligibility)
+            : base($"dlssg_for_sm86 cannot be installed: {eligibility.Blocker}.")
+        {
+            Eligibility = eligibility;
+        }
     }
 
     /// <summary>Thrown when OptiScaler would be installed under a proxy name dlssg_for_sm86 already uses.</summary>
@@ -196,6 +214,30 @@ namespace OptiscalerClient.Services
                 DebugWindow.Log($"[DlssgSm86] Could not read HAGS state: {ex.Message}");
                 return HagsState.Unknown;
             }
+        }
+
+        public DlssgSm86ActionPlan GetPendingAction(DlssgSm86Eligibility eligibility, DlssgSm86InstallState? state,
+            DlssgSm86BuildEntry build, int maxGeneratedFrames)
+        {
+            var modVersion = Packages.Manifest?.ModVersion;
+            bool updateAvailable = state != null && !string.Equals(state.Version, modVersion, StringComparison.OrdinalIgnoreCase);
+
+            DlssgSm86PendingAction action;
+            long downloadBytes = 0;
+            if (state == null)
+            {
+                action = DlssgSm86PendingAction.Install;
+                downloadBytes = Packages.GetMissingBytes(build, DlssgSm86PackageService.SelectFiles(build, eligibility.FreeProxyNames));
+            }
+            else if (updateAvailable || !string.Equals(state.Build, build.Id, StringComparison.OrdinalIgnoreCase))
+                action = DlssgSm86PendingAction.Update;
+            else if (state.MaxGeneratedFrames != DlssgSm86Multipliers.Clamp(maxGeneratedFrames, build))
+                action = DlssgSm86PendingAction.ApplyMultiplier;
+            else
+                action = DlssgSm86PendingAction.None;
+
+            return new DlssgSm86ActionPlan(action, downloadBytes, updateAvailable,
+                CanRun: eligibility.IsEligible && action != DlssgSm86PendingAction.None);
         }
 
         // ── Eligibility ──────────────────────────────────────────────────────────
@@ -386,7 +428,7 @@ namespace OptiscalerClient.Services
             // proxy into the folder since).
             var eligibility = await Task.Run(() => GetEligibility(game), cancellationToken);
             if (!eligibility.IsEligible || eligibility.TargetDirectory == null)
-                throw new InvalidOperationException($"dlssg_for_sm86 cannot be installed: {eligibility.Blocker}.");
+                throw new DlssgSm86BlockedException(eligibility);
 
             var files = DlssgSm86PackageService.SelectFiles(build, eligibility.FreeProxyNames);
             var cacheDir = await Packages.EnsureFilesAsync(build, files, progress, cancellationToken);
@@ -464,7 +506,8 @@ namespace OptiscalerClient.Services
                         // filtered out by eligibility.
                         var preHash = DlssgSm86PackageService.ComputeSha256(dest);
                         if (!store.BackupFile(storeKey, targetDir, file.Name))
-                            throw new IOException($"Could not back up '{file.Name}' before installing.");
+                            throw new IOException(string.Format(DlssgSm86Records.GetString("TxtDlssgSm86BackupFailed",
+                                "Could not back up {0} before installing."), file.Name));
                         File.Move(tmp, dest, overwrite: true);
                         replaced.Add(file.Name);
                         record.FilesOverwritten.Add(new ManifestFileRecord
@@ -489,7 +532,7 @@ namespace OptiscalerClient.Services
                     foreach (var (section, key, value) in carried)
                         DlssgSm86Ini.SetValue(iniPath, section, key, value);
 
-                var applied = Math.Clamp(maxGeneratedFrames, 1, build.MaxGeneratedFrames);
+                var applied = DlssgSm86Multipliers.Clamp(maxGeneratedFrames, build);
                 DlssgSm86Ini.SetValue(iniPath, "FrameGeneration", "MaxGeneratedFrames", applied.ToString());
 
                 foreach (var entry in record.FilesCreated.Concat(record.FilesOverwritten))
@@ -525,8 +568,9 @@ namespace OptiscalerClient.Services
             var store = new BackupStoreService();
             var record = DlssgSm86Records.LoadCommitted(store, game) ?? throw new InvalidOperationException("dlssg_for_sm86 is not installed.");
             var build = Packages.Manifest?.FindBuild(record.DlssgSm86Build);
-            var max = build?.MaxGeneratedFrames ?? DlssgSm86Multipliers.Default;
-            var applied = Math.Clamp(maxGeneratedFrames, 1, max);
+            var applied = build != null
+                ? DlssgSm86Multipliers.Clamp(maxGeneratedFrames, build)
+                : Math.Clamp(maxGeneratedFrames, 1, DlssgSm86Multipliers.Default);
 
             var iniPath = Path.Combine(record.InstalledGameDirectory!, DlssgSm86Records.IniFileName);
             var iniRecord = FindRecord(record, DlssgSm86Records.IniFileName);

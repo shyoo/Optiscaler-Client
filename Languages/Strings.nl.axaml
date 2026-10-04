@@ -1165,6 +1165,12 @@ Deze versie is niet beschikbaar om te downloaden. Controleer uw internetverbindi
     <x:String x:Key="TxtDlssgSm86KeepIni">Mijn INI houden</x:String>
     <x:String x:Key="TxtDlssgSm86KeptFiles">Deze bestanden zijn na de installatie gewijzigd en zijn blijven staan: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86VerifyFailed">Een gedownload bestand kwam niet door de controle en is verwijderd: {0}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySize">grootte is {0} bytes, verwacht {1}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyHash">SHA-256 komt niet overeen met de vastgelegde waarde</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyUnsigned">het bestand is niet ondertekend</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySigner">ondertekend met een onverwacht certificaat ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyError">kon niet worden gecontroleerd ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86BackupFailed">Kon geen back-up maken van {0} vóór de installatie.</x:String>
     <x:String x:Key="TxtDlssgSm86InstallFailed">DLSS FG voor RTX 20/30 kon niet worden geïnstalleerd: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86UninstallFailed">DLSS FG voor RTX 20/30 kon niet worden verwijderd: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86CollisionMsg">{0} wordt in deze gamemap al gebruikt door DLSS FG voor RTX 20/30 ({1}). Kies een andere injectiemethode of verwijder eerst DLSS FG voor RTX 20/30.</x:String>

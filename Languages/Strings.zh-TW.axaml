@@ -1162,6 +1162,12 @@
     <x:String x:Key="TxtDlssgSm86KeepIni">保留我的 INI</x:String>
     <x:String x:Key="TxtDlssgSm86KeptFiles">以下檔案在安裝後被修改，已保留原處：{0}</x:String>
     <x:String x:Key="TxtDlssgSm86VerifyFailed">下載的檔案未通過驗證，已刪除：{0}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySize">大小為 {0} 位元組，應為 {1}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyHash">SHA-256 與固定值不符</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyUnsigned">檔案未簽署</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySigner">由非預期的憑證簽署（{0}）</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyError">無法驗證（{0}）</x:String>
+    <x:String x:Key="TxtDlssgSm86BackupFailed">安裝前無法備份 {0}。</x:String>
     <x:String x:Key="TxtDlssgSm86InstallFailed">無法安裝 DLSS FG for RTX 20/30：{0}</x:String>
     <x:String x:Key="TxtDlssgSm86UninstallFailed">無法解除安裝 DLSS FG for RTX 20/30：{0}</x:String>
     <x:String x:Key="TxtDlssgSm86CollisionMsg">此遊戲資料夾中的 {0} 已被 DLSS FG for RTX 20/30 使用（{1}）。請選擇其他注入方式，或先解除安裝 DLSS FG for RTX 20/30。</x:String>

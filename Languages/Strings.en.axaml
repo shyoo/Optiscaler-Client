@@ -1161,6 +1161,12 @@ This version is unavailable for download. Check your internet connection and try
     <x:String x:Key="TxtDlssgSm86KeepIni">Keep my INI</x:String>
     <x:String x:Key="TxtDlssgSm86KeptFiles">These files were changed after installation and were left in place: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86VerifyFailed">A downloaded file failed verification and was deleted: {0}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySize">size is {0} bytes, expected {1}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyHash">SHA-256 does not match the pinned value</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyUnsigned">the file is not signed</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySigner">signed by an unexpected certificate ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyError">could not be checked ({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86BackupFailed">Could not back up {0} before installing.</x:String>
     <x:String x:Key="TxtDlssgSm86InstallFailed">Could not install DLSS FG for RTX 20/30: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86UninstallFailed">Could not uninstall DLSS FG for RTX 20/30: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86CollisionMsg">{0} is already used by DLSS FG for RTX 20/30 in this game folder ({1}). Pick another injection method, or uninstall DLSS FG for RTX 20/30 first.</x:String>

@@ -1161,6 +1161,12 @@
     <x:String x:Key="TxtDlssgSm86KeepIni">내 INI 유지</x:String>
     <x:String x:Key="TxtDlssgSm86KeptFiles">설치 후 변경된 다음 파일은 그대로 두었습니다: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86VerifyFailed">내려받은 파일이 검증에 실패하여 삭제했습니다: {0}</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySize">크기가 {0}바이트입니다(예상: {1})</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyHash">SHA-256이 고정된 값과 일치하지 않습니다</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyUnsigned">파일에 서명이 없습니다</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifySigner">예상하지 않은 인증서로 서명되었습니다({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86VerifyError">확인할 수 없습니다({0})</x:String>
+    <x:String x:Key="TxtDlssgSm86BackupFailed">설치하기 전에 {0}을(를) 백업하지 못했습니다.</x:String>
     <x:String x:Key="TxtDlssgSm86InstallFailed">DLSS FG for RTX 20/30을 설치하지 못했습니다: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86UninstallFailed">DLSS FG for RTX 20/30을 제거하지 못했습니다: {0}</x:String>
     <x:String x:Key="TxtDlssgSm86CollisionMsg">{0}은(는) 이 게임 폴더에서 이미 DLSS FG for RTX 20/30이 사용 중입니다({1}). 다른 주입 방식을 선택하거나 먼저 DLSS FG for RTX 20/30을 제거하세요.</x:String>

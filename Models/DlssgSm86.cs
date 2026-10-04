@@ -134,6 +134,25 @@ namespace OptiscalerClient.Models
         On
     }
 
+    /// <summary>What the section's action button does for the current selection.</summary>
+    public enum DlssgSm86PendingAction
+    {
+        /// <summary>Installed, and the selection matches what is installed: nothing to do.</summary>
+        None,
+        Install,
+        /// <summary>Installed, but the pinned mod version or the selected runtime differs: reinstall.</summary>
+        Update,
+        /// <summary>Installed with the same version and runtime: only MaxGeneratedFrames changes.</summary>
+        ApplyMultiplier
+    }
+
+    /// <summary>The pending action for a selection, plus what the window needs to describe it.</summary>
+    /// <param name="Action">What the action button does.</param>
+    /// <param name="DownloadBytes">Bytes still to download for <see cref="DlssgSm86PendingAction.Install"/>, else 0.</param>
+    /// <param name="UpdateAvailable">The installed mod version differs from the pinned one.</param>
+    /// <param name="CanRun">The action can run now: there is one and the game isn't blocked.</param>
+    public sealed record DlssgSm86ActionPlan(DlssgSm86PendingAction Action, long DownloadBytes, bool UpdateAvailable, bool CanRun);
+
     public sealed record DlssgSm86InstallResult(IReadOnlyList<string> ProxyNames, int MaxGeneratedFrames, bool MultiplierClamped);
 
     public sealed record DlssgSm86UninstallResult(IReadOnlyList<string> KeptModifiedFiles);
@@ -145,5 +164,17 @@ namespace OptiscalerClient.Models
         public static readonly int[] All = { 1, 2, 3, 5 };
 
         public static string Label(int maxGeneratedFrames) => $"{maxGeneratedFrames + 1}X";
+
+        /// <summary>The values offered for a build: those its runtime honours.</summary>
+        public static IReadOnlyList<int> For(DlssgSm86BuildEntry build) =>
+            All.Where(m => m <= build.MaxGeneratedFrames).ToArray();
+
+        /// <summary>The highest offered value not above <paramref name="maxGeneratedFrames"/>, so a 6X
+        /// choice becomes 4X on a build that tops out there.</summary>
+        public static int Clamp(int maxGeneratedFrames, DlssgSm86BuildEntry build)
+        {
+            var offered = For(build);
+            return offered.LastOrDefault(m => m <= maxGeneratedFrames, offered.Count > 0 ? offered[0] : 1);
+        }
     }
 }
