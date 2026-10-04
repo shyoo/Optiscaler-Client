@@ -5,46 +5,47 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 
 ## Where things stand
 
-- The fork's `general` = upstream `general` @ `f73cf2c` (v1.0.8) + the fork-only workspace files
-  (`AGENTS.md`, `HANDOFF.md`, `fork/`, the fork-local `.gitignore` block). No product code has
-  changed yet. `dotnet build` is green at this baseline (.NET SDK 10.0.401, 0 warnings).
-- Local `general` in the main checkout is ahead of `origin/general` (Warmstart's landing policy is
-  `commit-and-merge`, which doesn't push). The user pushes `general` when they choose to.
-- The maintainer approved the dlssg_for_sm86 proposal on upstream issue #103 (their only reply,
-  2026-10-03 19:19 UTC). The implementation plan is
-  [`fork/PLAN-dlssg-sm86.md`](fork/PLAN-dlssg-sm86.md).
-- **The plan's open questions are decided, not asked** (plan §9). The user chose to settle them
-  in-fork and discuss details in the PR. In short:
-  - **Q1 code-behind:** no DI, no ViewModel. Logic in the service; a thin
-    `Views/ManageGameWindow.DlssgSm86.cs` partial; service from
-    `PlatformServiceFactory.CreateDlssgSm86Service()` (null off Windows).
-  - **Q2 tests:** no test project in PR 1; §7 scenarios are checked by hand in plan task 8.
-  - **Q3 placement:** inside the Experimental zone (`GridExperimentalZone`, Settings →
-    Experimental). Hidden on Linux and on non-Turing/Ampere GPUs; game-level blockers shown with
-    the reason.
-  - **Q4 collision:** installing OptiScaler onto a DLSSG proxy name is refused with a message.
-  - **Q5 proxies:** every free name of version/winmm/dbghelp/dinput8; size shown before download.
-  - **Q6 docs:** README feature line + acknowledgments; no CHANGELOG (the maintainer writes it).
-
-- **The implementation plan is [`fork/IMPL-dlssg-sm86.md`](fork/IMPL-dlssg-sm86.md)** (t909). It
-  wins over the PLAN where they differ. Decisions made there with the user:
-  - **D1:** the card has its own Install/Update/Uninstall buttons, outside the main Install
-    pipeline.
-  - **D2:** the backup record uses store key `<targetDir>::dlssg_sm86` (the `::dlssnr`
-    precedent), plus a slug guard in `FindBackupDirUnder`. There is no `_components/` subtree.
-  - **D3:** v1 exposes only Build + Max multiplier.
+- The fork's `general` = upstream `general` @ `f73cf2c` (v1.0.8), plus the fork-only workspace
+  files, plus the **dlssg_for_sm86 feature** (t909). Local `general` in the main checkout is ahead
+  of `origin/general`: the landing policy doesn't push, and the user pushes when they choose to.
+- **dlssg_for_sm86 is implemented** as six product commits plus one `docs:` commit, matching the
+  PR slicing in plan §5. The design is [`fork/PLAN-dlssg-sm86.md`](fork/PLAN-dlssg-sm86.md); the
+  concrete plan and the **as-built deviations** are at the top of
+  [`fork/IMPL-dlssg-sm86.md`](fork/IMPL-dlssg-sm86.md). Read that section before changing the
+  feature. In short:
+  - Services: `DlssgSm86PackageService` (pinned manifest, download, verify, cache) and
+    `DlssgSm86Service` (Windows-only; eligibility, install/update/uninstall, INI, HAGS).
+    `DlssgSm86Records` is the platform-neutral lookup used by the analyzer and OptiScaler's
+    collision guard.
+  - Backup record: store key `game.InstallPath + "::dlssg_sm86"`. `InstallationManifest.ComponentId`
+    keeps it out of `FindBackupDirUnder`.
+  - UI: `Views/ManageGameWindow.DlssgSm86.cs` (card in the Experimental zone, four hooks in the main
+    file) and `Views/CacheManagementWindow.DlssgSm86.cs`. 43 `TxtDlssgSm86*` keys in all 14
+    languages.
+  - Pinned: mod `0.3.5` @ `9621db5`, both runtimes (310.9 / 310.1). To bump the mod version, run
+    `fork/tools/pin-dlssg-manifest.sh <tag>`.
+- **Verified:** `fork/tools/dlssg-harness` (27 end-to-end checks against fake game folders, with
+  real pinned downloads) all pass. Windows and `linux-x64` builds have 0 warnings.
+- Settled decisions (don't reopen): plan §9 Q1–Q6, and IMPL D1 (own buttons), D2 (store-key
+  precedent) and D3 (Build + multiplier only).
+- The PR text is drafted in [`fork/pr/dlssg-sm86.md`](fork/pr/dlssg-sm86.md). Its "Tested" section
+  is still empty.
 
 ## What is unproven
 
-- Coexistence of the mod with OptiScaler's own DLSS-G output providers (plan §8).
-- Whether `X509Certificate.CreateFromSignedFile` builds warning-free on net10 (IMPL §3.2). There is
-  a fallback.
-- The per-build file list and the UE target directory are **settled** (IMPL §1). 310.1 has no INI
-  of its own and uses the root INI.
+- **The UI has never been seen running**: layout at narrow widths in 14 languages, gamepad
+  navigation, the progress overlay, the dialogs.
+- **No real game yet**: FG actually showing up, HAGS behaviour, coexistence with OptiScaler's own
+  DLSS-G output providers (plan §8).
 
 ## Next
 
-Implement IMPL §4 in order: step A (pin script + manifest + models + GPU helpers), then B, C, D,
-E/F, G. Then the manual matrix (H) and the PR branch (I).
+1. **Task H, the manual matrix (the user, on the RTX 3080 Ti):** plan §7 "Manual" list. Turn on
+   Settings → Experimental, open a DLSS-G game (FF16), then install, launch, uninstall, and check
+   the folder is identical. Also do OptiScaler + DLSSG together and uninstall each one
+   independently. Fix whatever turns up, then fill in "Tested" in `fork/pr/dlssg-sm86.md`.
+2. **Task I:** cut `pr/dlssg-sm86` from `upstream/general`, cherry-pick the product commits
+   (`feat:`/`fix:`/`docs:` subjects mentioning dlssg_for_sm86 or component backups, oldest first),
+   run the AGENTS.md guard and push to `origin` only. The user opens the upstream PR.
 
 Housekeeping the user deferred: delete the stale `warmstart/t902` branch (local and `origin`).

@@ -1,0 +1,145 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using OptiscalerClient.Models;
+using OptiscalerClient.Services;
+
+// Scratch end-to-end checks for the dlssg_for_sm86 service (not part of the repo).
+var root = Path.Combine(Path.GetTempPath(), "dlssg-harness-run");
+var appData = Path.Combine(root, "appdata");
+Environment.SetEnvironmentVariable("OPTISCALER_CLIENT_APPDATA", appData);
+var gamesRoot = Path.Combine(root, "games");
+if (Directory.Exists(gamesRoot)) Directory.Delete(gamesRoot, true);
+
+// The manifest is read from AppContext.BaseDirectory/assets/configs — the ProjectReference copies it.
+int failures = 0;
+void Check(bool ok, string what) { Console.WriteLine($"{(ok ? "PASS" : "FAIL")}  {what}"); if (!ok) failures++; }
+
+Dictionary<string, string> Snapshot(string dir) =>
+    Directory.EnumerateFiles(dir, "*", SearchOption.AllDirectories)
+        .ToDictionary(f => Path.GetRelativePath(dir, f), f => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(f))), StringComparer.OrdinalIgnoreCase);
+bool SameSnapshot(Dictionary<string, string> a, Dictionary<string, string> b) =>
+    a.Count == b.Count && a.All(kv => b.TryGetValue(kv.Key, out var v) && v == kv.Value);
+
+Game MakeGame(string name, Action<string> populate)
+{
+    var dir = Path.Combine(gamesRoot, name);
+    Directory.CreateDirectory(dir);
+    File.WriteAllText(Path.Combine(dir, name + ".exe"), "MZ fake exe " + new string('x', 4096));
+    File.WriteAllText(Path.Combine(dir, "nvngx_dlssg.dll"), "fake dlssg");
+    File.WriteAllText(Path.Combine(dir, "sl.dlss_g.dll"), "fake sl");
+    populate(dir);
+    return new Game { Name = name, InstallPath = dir };
+}
+
+var service = PlatformServiceFactory.CreateDlssgSm86Service()!;
+Check(service != null, "factory returns a service on Windows");
+var manifest = service!.Packages.Manifest;
+Check(manifest?.ModVersion == "0.3.5" && manifest.Builds.Count == 2, "pinned manifest loads (0.3.5, 2 builds)");
+Console.WriteLine($"HAGS: {service.GetHagsState()}");
+
+// ── Eligibility ─────────────────────────────────────────────────────────────
+var clean = MakeGame("CleanGame", _ => { });
+var e = service.GetEligibility(clean);
+Check(e.IsEligible && e.FreeProxyNames.SequenceEqual(new[] { "version.dll", "winmm.dll", "dbghelp.dll", "dinput8.dll" }), $"clean folder → all four free ({e.Blocker}, {string.Join(",", e.FreeProxyNames)})");
+
+var asi = MakeGame("AsiGame", d => { File.WriteAllText(Path.Combine(d, "dinput8.dll"), "asi loader"); File.WriteAllText(Path.Combine(d, "mod.asi"), "x"); });
+e = service.GetEligibility(asi);
+Check(e.IsEligible && !e.FreeProxyNames.Contains("dinput8.dll") && e.Occupied.Single().Owner == DlssgSm86ProxyOwner.AsiLoader, "dinput8.dll of an ASI loader is skipped and labelled");
+
+var full = MakeGame("FullGame", d => { foreach (var n in DlssgSm86Records.ProxyNames) File.WriteAllText(Path.Combine(d, n), "taken"); });
+Check(service.GetEligibility(full).Blocker == DlssgSm86Blocker.NoFreeProxyName, "all names taken → NoFreeProxyName");
+
+var noDlssg = MakeGame("NoDlssgGame", d => { File.Delete(Path.Combine(d, "nvngx_dlssg.dll")); File.Delete(Path.Combine(d, "sl.dlss_g.dll")); });
+Check(service.GetEligibility(noDlssg).Blocker == DlssgSm86Blocker.NoDlssG, "no DLSS-G → NoDlssG");
+
+var ac = MakeGame("AcGame", d => File.WriteAllText(Path.Combine(d, "EasyAntiCheat_x64.dll"), "x"));
+Check(service.GetEligibility(ac).Blocker == DlssgSm86Blocker.AntiCheat, "anti-cheat → AntiCheat");
+
+// ── Verification ────────────────────────────────────────────────────────────
+var b109 = manifest!.FindBuild("310.9")!;
+var iniEntry = b109.Ini!;
+var bogus = Path.Combine(root, "bogus.ini");
+File.WriteAllText(bogus, new string('a', (int)iniEntry.Size));
+try { DlssgSm86PackageService.VerifyFile(bogus, iniEntry, manifest.SignerThumbprint); Check(false, "hash mismatch rejected"); }
+catch (DlssgSm86VerificationException) { Check(!File.Exists(bogus), "hash mismatch rejected and file deleted"); }
+
+// ── Install / update / uninstall on the ASI game (pre-existing files must survive byte-identical) ──
+File.WriteAllText(Path.Combine(asi.InstallPath, "dlssg_sm86.ini"), "[General]\nEnabled=0\n"); // leftover manual INI
+var before = Snapshot(asi.InstallPath);
+
+double lastProgress = 0;
+var progress = new Progress<double>(p => lastProgress = p);
+var r = await service.InstallAsync(asi, "310.9", 5, progress);
+Check(r.ProxyNames.SequenceEqual(new[] { "version.dll", "winmm.dll", "dbghelp.dll" }) && r.MaxGeneratedFrames == 5 && !r.MultiplierClamped, "install 310.9 at 6X into three free names");
+var state = service.GetInstallState(asi);
+Check(state?.Build == "310.9" && state.MaxGeneratedFrames == 5 && asi.IsDlssgSm86Installed && asi.DlssgSm86Version == "0.3.5", "install state + analyzer fields");
+Check(File.ReadAllText(Path.Combine(asi.InstallPath, "dlssg_sm86.ini")).Contains("; DLSSG SM86"), "factory INI replaced the leftover one (comments kept)");
+Check(DlssgSm86Records.GetInstalledProxyNames(asi, asi.InstallPath).Count == 3, "collision guard sees our proxy names");
+Check(new BackupStoreService().FindBackupDirUnder(gamesRoot) == null, "OptiScaler reverse lookup skips the component record");
+Check(!service.IsIniModified(asi), "fresh INI not flagged as modified");
+
+service.SetMaxGeneratedFrames(asi, 2);
+Check(service.GetInstallState(asi)!.MaxGeneratedFrames == 2 && !service.IsIniModified(asi), "multiplier change re-baselines the INI hash");
+
+var iniPath = Path.Combine(asi.InstallPath, "dlssg_sm86.ini");
+File.WriteAllText(iniPath, File.ReadAllText(iniPath).Replace("Level=1", "Level=2").Replace("MaxGeneratedFrames=2", "MaxGeneratedFrames=5"));
+Check(service.IsIniModified(asi), "hand edit flagged as modified");
+
+r = await service.InstallAsync(asi, "310.1", 5);
+var iniText = File.ReadAllText(iniPath);
+Check(r.MaxGeneratedFrames == 3 && r.MultiplierClamped && iniText.Contains("Level=2") && iniText.Contains("MaxGeneratedFrames=3"), "switch to 310.1 carries Level=2 over and clamps 6X to 4X");
+Check(service.GetInstallState(asi)!.Build == "310.1", "build switched");
+Check(new FileInfo(Path.Combine(asi.InstallPath, "version.dll")).Length == manifest.FindBuild("310.1")!.Proxies.First().Size, "310.1 proxy in place");
+
+Directory.CreateDirectory(Path.Combine(asi.InstallPath, "dlssg_sm86", "logs"));
+File.WriteAllText(Path.Combine(asi.InstallPath, "dlssg_sm86", "logs", "loader_1.jsonl"), "{}");
+
+var u = service.Uninstall(asi, keepModifiedIni: false);
+Check(u.KeptModifiedFiles.Count == 0, "uninstall removed everything");
+var after = Snapshot(asi.InstallPath);
+Check(SameSnapshot(before, after) && !Directory.Exists(Path.Combine(asi.InstallPath, "dlssg_sm86")), "folder byte-identical to before install (leftover INI restored, logs gone)");
+Check(!asi.IsDlssgSm86Installed && service.GetInstallState(asi) == null, "state cleared");
+
+// ── Keep a modified INI on uninstall ────────────────────────────────────────
+await service.InstallAsync(clean, "310.9", 3);
+File.AppendAllText(Path.Combine(clean.InstallPath, "dlssg_sm86.ini"), "\n; my note\n");
+u = service.Uninstall(clean, keepModifiedIni: true);
+Check(u.KeptModifiedFiles.SequenceEqual(new[] { "dlssg_sm86.ini" }) && File.Exists(Path.Combine(clean.InstallPath, "dlssg_sm86.ini")) && !File.Exists(Path.Combine(clean.InstallPath, "version.dll")), "edited INI kept when asked, proxies removed");
+File.Delete(Path.Combine(clean.InstallPath, "dlssg_sm86.ini"));
+
+// ── Rollback: a staging path blocked by a directory makes the install fail midway ──
+var rb = MakeGame("RollbackGame", _ => { });
+Directory.CreateDirectory(Path.Combine(rb.InstallPath, "dinput8.dll.dlssg_tmp"));
+var rbBefore = Snapshot(rb.InstallPath);
+try { await service.InstallAsync(rb, "310.9", 3); Check(false, "install into blocked folder fails"); }
+catch (Exception ex) { Console.WriteLine($"      (expected failure: {ex.GetType().Name})"); }
+Check(SameSnapshot(rbBefore, Snapshot(rb.InstallPath)) && service.GetInstallState(rb) == null && new BackupStoreService().LoadManifest(DlssgSm86Records.StoreKey(rb)) == null, "failed install rolled back, no record left");
+
+// ── Collision guard in InstallOptiScaler ────────────────────────────────────
+await service.InstallAsync(clean, "310.9", 3);
+var fakeCache = Path.Combine(root, "fakeopticache");
+Directory.CreateDirectory(fakeCache);
+File.WriteAllText(Path.Combine(fakeCache, "OptiScaler.dll"), "x");
+try
+{
+    new GameInstallationService().InstallOptiScaler(clean, fakeCache, "winmm.dll", overrideGameDir: clean.InstallPath);
+    Check(false, "OptiScaler onto winmm.dll refused");
+}
+catch (DlssgSm86ProxyCollisionException ex) { Check(true, $"OptiScaler onto winmm.dll refused: {ex.Message}"); }
+service.Uninstall(clean, false);
+
+// ── Cache listing ───────────────────────────────────────────────────────────
+var cached = service.Packages.ListCached();
+Check(cached.Count == 2 && cached.All(c => c.SizeBytes > 50_000_000), $"cache lists both builds ({string.Join(", ", cached.Select(c => $"{c.BuildId}:{c.SizeBytes / 1048576}MB"))})");
+
+var cachedDll = Path.Combine(service.Packages.GetBuildCacheDir("0.3.5", "310.9"), "version.dll");
+using (var fs = new FileStream(cachedDll, FileMode.Open)) { fs.Position = 1000; fs.WriteByte(0x42); }
+await service.Packages.EnsureFilesAsync(b109, DlssgSm86PackageService.SelectFiles(b109, new[] { "version.dll" }));
+DlssgSm86PackageService.VerifyFile(cachedDll, b109.Proxies.First(), manifest.SignerThumbprint);
+Check(File.Exists(cachedDll), "tampered cache file re-downloaded and verifies");
+
+Console.WriteLine(failures == 0 ? "ALL PASSED" : $"{failures} FAILED");
+return failures;

@@ -9,6 +9,37 @@ Written 2026-10-03 after reading the code and the mod repo at `9621db5`.
 
 ---
 
+## As built (t909, 2026-10-03): where the code differs from the plan below
+
+Steps A–G are implemented. These choices replace what §2–§3 say:
+
+- **Store key:** `game.InstallPath + "::dlssg_sm86"`, not `<targetDir>::…`. That's the same root
+  OptiScaler keys its own record by (`storeKey = game.InstallPath`), so the analyzer finds the
+  record without first resolving the exe folder. The folder is in `InstalledGameDirectory`.
+- **Reverse-lookup guard:** a new `InstallationManifest.ComponentId` field (`"dlssg_sm86"`).
+  `FindBackupDirUnder` skips manifests that set it. The planned slug comparison would have broken
+  UE layouts, where OptiScaler's key (the game root) differs from its install folder. The dlssnr
+  record doesn't set `ComponentId`, so it's still not skipped; that's left alone on purpose.
+- **Update / build switch:** the new files are downloaded and verified first. Then the old install
+  is removed and the new one installed. If the new install then fails, the folder is left
+  **clean**, not on the previous version. Only local disk I/O can fail at that point.
+- **Logs:** uninstall always removes `<exeDir>\dlssg_sm86\logs` (no opt-in), as `DlssNrOnAmdService`
+  sweeps its runtime artifacts.
+- **NotDx12:** blocks only when there's Vulkan evidence and no D3D12 evidence. `IsDirectX12` alone
+  is false for most DX12 games, which don't ship d3d12 DLLs.
+- **Thumbprint:** `X509Certificate.CreateFromSignedFile` is obsolete (SYSLIB0057), and
+  `X509CertificateLoader` has no PE-signature equivalent, so the warning is suppressed at that one
+  call.
+- **Gamepad:** a hook in `GetRootNeighborCandidates` lets the partial supply every DLSSG-related
+  neighbour. Each list ends with the regular map's target.
+- **Cache page:** its own partial (`CacheManagementWindow.DlssgSm86.cs`). "Clear application
+  cache" needed no change: it already removes all of `Cache/`.
+- **Strings:** 43 keys ×14.
+- **Downloads:** only the proxies needed for the free names are downloaded (lazily, per file).
+
+Verified by: `fork/tools/dlssg-harness` (27 checks), and Windows + `linux-x64` builds with no
+warnings. **Not verified yet:** the UI itself and any real game (task H).
+
 ## 0. Decisions made in this round (user, 2026-10-03)
 
 | # | Decision | Replaces |
