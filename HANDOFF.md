@@ -34,15 +34,14 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 - **Verified:**
   - The user's manual pass on FF16 / RTX 3080 Ti (all steps as expected, including OptiScaler
     together with the mod, the collision refusal, and a byte-identical uninstall).
-  - The user's later check of the manual-install blocker in the app, with their 0.2.4 copy.
+  - The user's later checks in the app: the manual-install blocker with their 0.2.4 copy, and the
+    button labels after the pending-action refactor (Apply on a multiplier change, Update on a
+    runtime switch).
   - `fork/tools/dlssg-harness` (41 checks).
   - Windows and linux-x64 builds.
 
 ## What is unproven
 
-- The pending-action refactor (`d677a4c`) in the real UI: it came after the user's manual pass and
-  is covered by the harness only. A quick look at the button labels (Install / Apply / Update /
-  Installed) before the PR is opened would close that.
 - Games other than FF16. Notably, no MFG-capable game (Streamline ≥ 2.8, for 3X/4X/6X) has been
   tried, and neither has a UE game whose exe sits in `Binaries\Win64`.
 

@@ -53,7 +53,7 @@ Steps A–G are implemented. These choices replace what §2–§3 say:
 Verified by: `fork/tools/dlssg-harness` (41 checks), Windows + `linux-x64` builds with no
 warnings, and the user's manual pass on FF16 / RTX 3080 Ti (task H, steps 1–10, all as expected,
 and later the manual-install blocker against their 0.2.4 `version.dll`). The pending-action move
-came after the manual pass and is covered by the harness.
+came after that pass; the user then confirmed Apply and Update labels in the app.
 
 ## 0. Decisions made in this round (user, 2026-10-03)
 
