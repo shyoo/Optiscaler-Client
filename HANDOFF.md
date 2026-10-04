@@ -8,8 +8,9 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 - The fork's `general` = upstream `general` @ `f73cf2c` (v1.0.8), plus the fork-only workspace
   files, plus the **dlssg_for_sm86 feature** (t909). Local `general` in the main checkout is ahead
   of `origin/general`: the landing policy doesn't push, and the user pushes when they choose to.
-- **dlssg_for_sm86 is done and the PR branch is pushed**: `origin/pr/dlssg-sm86` (head `1e438c1`).
-  It holds 7 product commits cut from `upstream/general` @ `f73cf2c`, with the AGENTS.md guards
+- **dlssg_for_sm86 is done and the PR branch is pushed**: `origin/pr/dlssg-sm86` (head `1b7a682`).
+  It holds **one squashed commit**, at the user's request (`general` keeps the 7-commit history, same
+  tree), cut from `upstream/general` @ `f73cf2c`, with the AGENTS.md guards
   clean, the same product content as `general`, and a build with 0 warnings. **The user opens the
   upstream PR** with the text in [`fork/pr/dlssg-sm86.md`](fork/pr/dlssg-sm86.md). Agents never
   open it.

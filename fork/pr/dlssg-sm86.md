@@ -3,7 +3,8 @@
 Fork-only. This is the text the user pastes into the upstream PR. It is never opened by an agent.
 
 - Branch: `pr/dlssg-sm86` on `origin` (shyoo/Optiscaler-Client), cut from `upstream/general` @
-  `f73cf2c`, head `1e438c1`, 7 product commits. Pushed 2026-10-03.
+  `f73cf2c`, head `1b7a682`: **one squashed commit**, at the user's request; its tree is identical to the
+  7-commit series on `general`. Pushed 2026-10-03.
 - Open the PR at:
   https://github.com/Optiscaler-Client/Optiscaler-Client/compare/general...shyoo:Optiscaler-Client:pr/dlssg-sm86
 - Base: `Optiscaler-Client:general`
