@@ -1,6 +1,9 @@
 # PR draft: dlssg_for_sm86 (DLSS FG on RTX 20/30) as a standalone component
 
-Fork-only. This is the text the user pastes into the upstream PR. It is never opened by an agent.
+Fork-only. **Done: #117 went upstream on 2026-10-06.** The maintainer rebased both commits onto
+`upstream/general` as `a2bfd76` and `61893cb` (product files identical to the branch) and closed
+the PR, so GitHub shows it as Closed rather than Merged. `pr/dlssg-sm86` was deleted afterwards.
+Kept as the record of what was posted.
 
 - Branch: `pr/dlssg-sm86` on `origin` (shyoo/Optiscaler-Client), cut from `upstream/general` @
   `f73cf2c`. Opened by the user as **#117** on 2026-10-03.

@@ -5,15 +5,13 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 
 ## Where things stand
 
-- The fork's `general` = upstream `general` @ `f73cf2c` (v1.0.8), plus the fork-only workspace
-  files, plus the **dlssg_for_sm86 feature** (t909). Local `general` in the main checkout is ahead
-  of `origin/general`: the landing policy doesn't push, and the user pushes when they choose to.
-- **dlssg_for_sm86 is upstream PR #117** (opened by the user), from `origin/pr/dlssg-sm86`, cut
-  from `upstream/general` @ `f73cf2c`: `b0a7d18` (the feature, squashed at the user's request)
-  and `ca1145b` (the maintainer's review of 2026-10-04: main install buttons, None, badge colour,
-  no status line). The description and a reply draft are in
-  [`fork/pr/dlssg-sm86.md`](fork/pr/dlssg-sm86.md); **the user pastes and posts them**. Agents
-  never write on upstream.
+- The fork's `general` = upstream `general` @ `61893cb` (merged in), plus the fork-only
+  workspace files. Its product code is identical to upstream's. The landing policy doesn't push;
+  `origin/general` is pushed by hand after an upstream sync.
+- **dlssg_for_sm86 is upstream** (2026-10-06): #117 was rebased by the maintainer as `a2bfd76`
+  (the feature) and `61893cb` (the review: main install buttons, None, badge colour, no status
+  line), and closed rather than merged on GitHub. `pr/dlssg-sm86` is deleted. The posted text is
+  kept in [`fork/pr/dlssg-sm86.md`](fork/pr/dlssg-sm86.md).
 - Design: [`fork/PLAN-dlssg-sm86.md`](fork/PLAN-dlssg-sm86.md). Concrete plan and the **as-built
   deviations**: top of [`fork/IMPL-dlssg-sm86.md`](fork/IMPL-dlssg-sm86.md). Read that before
   changing the feature. In short:
@@ -52,9 +50,7 @@ Fork-only file; see [`AGENTS.md`](AGENTS.md).
 
 ## Next
 
-- Wait for the maintainer's next review on #117. Feedback becomes new commits on `general` (via
-  Warmstart tasks), then gets cherry-picked onto `pr/dlssg-sm86` and pushed to `origin`. Never
-  force-push while the PR is open, unless the user asks.
+- Fixes to the feature now go straight to a new `pr/<topic>` branch cut from `upstream/general`.
 - Follow-ups agreed on #103 (each its own PR later): the Diagnose button (plan §5 PR 2), and FG
   provider integration plus auto-selection in `GetRecommendation` (PR 3).
 
